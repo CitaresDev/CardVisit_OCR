@@ -1,6 +1,6 @@
 import os
 import hashlib
-import bcrypt
+import hmac
 import jwt
 from datetime import datetime, timedelta
 from sqlalchemy import create_engine
@@ -40,16 +40,44 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+try:
+    import bcrypt
+    has_bcrypt = True
+except ImportError:
+    has_bcrypt = False
+
 # Helper cryptographic hash & JWT functions
 def hash_username(username: str) -> str:
     return hashlib.sha256(username.strip().lower().encode("utf-8")).hexdigest()
 
 def hash_password(password: str) -> str:
-    salt = bcrypt.gensalt()
-    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+    if has_bcrypt:
+        try:
+            salt = bcrypt.gensalt()
+            return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+        except Exception:
+            pass
+    # Fallback to Built-in Python hashlib PBKDF2 HMAC (Zero C-dependency)
+    salt = os.urandom(16)
+    pw_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+    return f"pbkdf2:{salt.hex()}:{pw_hash.hex()}"
 
 def verify_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+    if not hashed:
+        return False
+    if hashed.startswith("pbkdf2:"):
+        parts = hashed.split(":")
+        if len(parts) == 3:
+            salt = bytes.fromhex(parts[1])
+            expected_hash = parts[2]
+            pw_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+            return hmac.compare_digest(pw_hash.hex(), expected_hash)
+    if has_bcrypt:
+        try:
+            return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+        except Exception:
+            return False
+    return False
 
 def create_jwt_token(account_token: str) -> str:
     payload = {
