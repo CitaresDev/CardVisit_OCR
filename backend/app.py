@@ -222,6 +222,13 @@ async def export_csv_endpoint(card_list: list):
         headers={"Content-Disposition": "attachment; filename=scanned_cards.csv"}
     )
 
+@app.post("/api/save-google-sheet")
+async def save_google_sheet_endpoint(payload: dict):
+    webhook_url = os.getenv("GOOGLE_SHEET_WEBHOOK_URL", "").strip()
+    if not webhook_url:
+        return {"success": False, "error": "Chưa cài đặt GOOGLE_SHEET_WEBHOOK_URL trên Vercel Environment Variables."}
+    return send_to_google_sheet(payload, webhook_url)
+
 # --------------------------------------------------------------------------
 # INTERNATIONAL STANDARD AUTHENTICATION ENDPOINTS (JWT Cookie + Bearer Token)
 # --------------------------------------------------------------------------

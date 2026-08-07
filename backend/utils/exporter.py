@@ -95,20 +95,19 @@ def export_to_csv(card_data_list: list, filepath: str):
     df.to_csv(filepath, index=False, encoding='utf-8-sig')
     return filepath
 
-def send_to_google_sheet(card_data_list: list, webhook_url: str) -> dict:
-    """Sends card data list to Google Apps Script Webhook URL."""
+def send_to_google_sheet(card_data: dict | list, webhook_url: str) -> dict:
+    """Sends card data or card list to Google Apps Script Webhook URL safely."""
     import requests
     if not webhook_url or not webhook_url.startswith("http"):
-        raise ValueError("Google Sheet Webhook URL không hợp lệ hoặc bị trống.")
+        return {"success": False, "error": "Google Sheet Webhook URL chưa được cấu hình hoặc không hợp lệ."}
     
     headers = {"Content-Type": "application/json"}
-    resp = requests.post(webhook_url, json=card_data_list, headers=headers, timeout=15)
-    
-    if resp.status_code >= 400:
-        raise Exception(f"Lỗi kết nối Google Sheet ({resp.status_code}): {resp.text}")
+    payload = card_data if isinstance(card_data, (list, dict)) else {"data": card_data}
     
     try:
-        return resp.json()
-    except Exception:
-        return {"status": "success", "message": "Đã gửi dữ liệu sang Google Sheet"}
-
+        resp = requests.post(webhook_url, json=payload, headers=headers, timeout=15)
+        if resp.status_code >= 400:
+            return {"success": False, "error": f"Lỗi Google Sheet API ({resp.status_code}): {resp.text}"}
+        return {"success": True, "message": "Đã lưu thông tin vào Google Sheet thành công!"}
+    except Exception as e:
+        return {"success": False, "error": f"Lỗi gửi dữ liệu Google Sheet: {str(e)}"}

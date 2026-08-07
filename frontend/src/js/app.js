@@ -398,27 +398,51 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
 
+  const batchQueueBanner = document.getElementById("batch-queue-banner");
+  const queueStatusText = document.getElementById("queue-status-text");
+  let fileQueue = [];
+
+  const updateQueueUI = () => {
+    if (!batchQueueBanner || !queueStatusText) return;
+    if (fileQueue.length > 0) {
+      batchQueueBanner.style.display = "block";
+      queueStatusText.innerText = `Còn ${fileQueue.length} ảnh trong hàng đợi...`;
+    } else {
+      batchQueueBanner.style.display = "none";
+    }
+  };
+
   dropZone.addEventListener("drop", (e) => {
     e.preventDefault();
     dropZone.classList.remove("dragover");
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelected(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleMultipleFilesSelected(e.dataTransfer.files);
     }
   });
 
   fileInput.addEventListener("change", (e) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileSelected(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      handleMultipleFilesSelected(e.target.files);
     }
   });
 
   if (cameraInput) {
     cameraInput.addEventListener("change", (e) => {
-      if (e.target.files && e.target.files[0]) {
-        handleFileSelected(e.target.files[0]);
+      if (e.target.files && e.target.files.length > 0) {
+        handleMultipleFilesSelected(e.target.files);
       }
     });
   }
+
+  const handleMultipleFilesSelected = (files) => {
+    if (!files || files.length === 0) return;
+    const fileList = Array.from(files);
+    handleFileSelected(fileList[0]);
+    if (fileList.length > 1) {
+      fileQueue.push(...fileList.slice(1));
+      updateQueueUI();
+    }
+  };
 
   const handleFileSelected = (file) => {
     selectedFile = file;
@@ -478,8 +502,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       alert("Lỗi trích xuất: " + e.message);
     } finally {
       btnExtract.disabled = false;
-      btnExtract.disabled = false;
       btnExtract.innerHTML = `Trích Xuất Dữ Liệu`;
+
+      if (fileQueue.length > 0) {
+        const nextFile = fileQueue.shift();
+        updateQueueUI();
+        setTimeout(() => {
+          handleFileSelected(nextFile);
+          btnExtract.click();
+        }, 800);
+      }
     }
   });
 
