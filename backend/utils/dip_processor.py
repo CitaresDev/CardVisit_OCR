@@ -1,4 +1,7 @@
-import cv2
+try:
+    import cv2
+except Exception:
+    cv2 = None
 import numpy as np
 import base64
 
@@ -84,10 +87,12 @@ def preprocess_card_image(image_bytes: bytes, auto_warp: bool = True):
     return encoded.tobytes(), img
 
 def crop_by_custom_points(image_bytes: bytes, points_list: list):
+    if cv2 is None:
+        return image_bytes
     nparr = np.frombuffer(image_bytes, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     if img is None:
-        raise ValueError("Could not decode image bytes")
+        return image_bytes
 
     pts = np.array(points_list, dtype="float32")
     warped = four_point_transform(img, pts)

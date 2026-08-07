@@ -20,7 +20,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from backend.engines.cloud_vision import extract_with_gemini_vision
-from backend.engines.local_ocr import extract_with_local_ocr
+
+try:
+    from backend.engines.local_ocr import extract_with_local_ocr
+except Exception:
+    def extract_with_local_ocr(*args, **kwargs):
+        return {"error": "Local OCR (OpenCV/Tesseract) không khả dụng trên Cloud Vercel. Vui lòng dùng AI Vision."}
+
 from backend.utils.dip_processor import crop_by_custom_points
 from backend.utils.exporter import generate_vcard, generate_excel, generate_csv, send_to_google_sheet
 
