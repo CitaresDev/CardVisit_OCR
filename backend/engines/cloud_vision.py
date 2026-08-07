@@ -104,27 +104,12 @@ def split_multiple_phones(res: dict) -> dict:
 
     return res
 
-def auto_fill_phone_2_hybrid(res: dict, image_bytes: bytes) -> dict:
-    """General cross-referencing fallback if AI Vision missed a 2nd phone line."""
-    if res.get("phone") and not res.get("phone_2"):
-        try:
-            from backend.engines.local_ocr import extract_with_local_ocr
-            loc_res = extract_with_local_ocr(image_bytes)
-            p1_digits = re.sub(r'\D', '', str(res.get("phone", "")))
-
-            for loc_p in [loc_res.get("phone_2", ""), loc_res.get("phone", "")]:
-                loc_digits = re.sub(r'\D', '', str(loc_p))
-                if len(loc_digits) >= 8 and loc_digits not in p1_digits and p1_digits not in loc_digits:
-                    res["phone_2"] = loc_p
-                    break
-        except Exception as e:
-            print(f"[Hybrid Fallback Error]: {e}")
-
+def auto_fill_phone_2_hybrid(res: dict, image_bytes: bytes = None) -> dict:
+    """Format and clean phone numbers extracted by Pure Cloud AI Vision."""
     if res.get("phone"):
         res["phone"] = clean_phone_number(res["phone"])
     if res.get("phone_2"):
         res["phone_2"] = clean_phone_number(res["phone_2"])
-
     return res
 
 def extract_with_nvidia_llama_vision(image_bytes: bytes, api_key: str) -> dict:
