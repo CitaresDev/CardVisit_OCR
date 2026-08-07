@@ -240,52 +240,60 @@ def extract_token_from_request(request: Request, access_token_cookie: str = None
 
 @app.post("/api/auth/login")
 async def login_endpoint(payload: dict, response: Response, request: Request):
-    username = payload.get("username", "").strip()
-    password = payload.get("password", "").strip()
-
-    if not username or not password:
-        raise HTTPException(status_code=400, detail="Vui lòng nhập đầy đủ Username và Mật khẩu.")
-
-    from backend.database.db_manager import SessionLocal, hash_username, verify_password, create_jwt_token, seed_default_user
-    from backend.database.models import UserCredential, UserProfile
-
-    # Ensure CITARES seed user exists on fresh Neon DB
-    seed_default_user()
-
-    db = SessionLocal()
     try:
-        u_hash = hash_username(username)
-        cred = db.query(UserCredential).filter(UserCredential.username_hash == u_hash).first()
-        if not cred or not verify_password(password, cred.password_hash):
-            raise HTTPException(status_code=401, detail="Tên đăng nhập hoặc mật khẩu không chính xác.")
+        username = payload.get("username", "").strip() if payload else ""
+        password = payload.get("password", "").strip() if payload else ""
 
-        profile = db.query(UserProfile).filter(UserProfile.account_token == cred.account_token).first()
-        token = create_jwt_token(cred.account_token)
+        if not username or not password:
+            raise HTTPException(status_code=400, detail="Vui lòng nhập đầy đủ Username và Mật khẩu.")
 
-        is_https = request.headers.get("x-forwarded-proto") == "https" or bool(os.getenv("VERCEL")) or request.url.scheme == "https"
+        from backend.database.db_manager import SessionLocal, hash_username, verify_password, create_jwt_token, seed_default_user
+        from backend.database.models import UserCredential, UserProfile
 
-        response.set_cookie(
-            key="access_token",
-            value=token,
-            httponly=True,
-            samesite="lax" if not is_https else "none",
-            max_age=86400 * 7,
-            secure=is_https
-        )
+        # Ensure CITARES seed user exists on fresh Neon DB
+        try:
+            seed_default_user()
+        except Exception as seed_err:
+            print(f"[Seed Error]: {seed_err}")
 
-        return {
-            "success": True,
-            "message": "Đăng nhập thành công!",
-            "token": token,
-            "user": {
-                "account_token": cred.account_token,
-                "full_name": profile.full_name if profile else username,
-                "email": profile.email if profile else "",
-                "role": profile.role if profile else "user"
+        db = SessionLocal()
+        try:
+            u_hash = hash_username(username)
+            cred = db.query(UserCredential).filter(UserCredential.username_hash == u_hash).first()
+            if not cred or not verify_password(password, cred.password_hash):
+                raise HTTPException(status_code=401, detail="Tên đăng nhập hoặc mật khẩu không chính xác.")
+
+            profile = db.query(UserProfile).filter(UserProfile.account_token == cred.account_token).first()
+            token = create_jwt_token(cred.account_token)
+
+            is_https = request.headers.get("x-forwarded-proto") == "https" or bool(os.getenv("VERCEL")) or request.url.scheme == "https"
+
+            response.set_cookie(
+                key="access_token",
+                value=token,
+                httponly=True,
+                samesite="lax",
+                max_age=86400 * 7,
+                secure=is_https
+            )
+
+            return {
+                "success": True,
+                "message": "Đăng nhập thành công!",
+                "token": token,
+                "user": {
+                    "account_token": cred.account_token,
+                    "full_name": profile.full_name if profile else username,
+                    "email": profile.email if profile else "",
+                    "role": profile.role if profile else "user"
+                }
             }
-        }
-    finally:
-        db.close()
+        finally:
+            db.close()
+    except HTTPException as http_ex:
+        raise http_ex
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi Server (500): {str(e)}")
 
 @app.post("/api/auth/register")
 async def register_endpoint(payload: dict, response: Response, request: Request, access_token: str = Cookie(None)):
