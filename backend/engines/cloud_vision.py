@@ -4,7 +4,6 @@ import base64
 import requests
 import re
 from dotenv import load_dotenv
-from backend.engines.local_ocr import extract_with_local_ocr
 
 def parse_robust_json(text_content: str) -> dict:
     """
@@ -109,6 +108,7 @@ def auto_fill_phone_2_hybrid(res: dict, image_bytes: bytes) -> dict:
     """General cross-referencing fallback if AI Vision missed a 2nd phone line."""
     if res.get("phone") and not res.get("phone_2"):
         try:
+            from backend.engines.local_ocr import extract_with_local_ocr
             loc_res = extract_with_local_ocr(image_bytes)
             p1_digits = re.sub(r'\D', '', str(res.get("phone", "")))
 

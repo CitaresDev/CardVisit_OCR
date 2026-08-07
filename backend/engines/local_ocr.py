@@ -1,7 +1,10 @@
 import re
 import os
 import shutil
-import cv2
+try:
+    import cv2
+except Exception:
+    cv2 = None
 import numpy as np
 from PIL import Image
 from dotenv import load_dotenv
