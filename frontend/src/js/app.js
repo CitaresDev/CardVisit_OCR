@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const loadCardHistory = async () => {
     if (!dbHistoryList) return;
     try {
-      const res = await fetch("/api/cards/history");
+      const res = await fetch("/api/cards/history", { headers: getAuthHeaders() });
       const data = await res.json();
       dbHistoryList.innerHTML = "";
       if (!data.history || data.history.length === 0) {
@@ -91,9 +91,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Check Current User Auth State (/api/auth/me)
+  const getAuthHeaders = (extraHeaders = {}) => {
+    const token = localStorage.getItem("auth_token");
+    const headers = { ...extraHeaders };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    return headers;
+  };
+
   const checkAuthState = async () => {
     try {
-      const res = await fetch("/api/auth/me");
+      const res = await fetch("/api/auth/me", {
+        headers: getAuthHeaders()
+      });
       const data = await res.json();
       if (data.authenticated && data.user) {
         currentUser = data.user;
@@ -128,7 +139,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (btnLogout) {
     btnLogout.addEventListener("click", async () => {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch("/api/auth/logout", { method: "POST", headers: getAuthHeaders() });
+      localStorage.removeItem("auth_token");
       await checkAuthState();
       alert("Đã đăng xuất tài khoản!");
     });
@@ -161,7 +173,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const res = await fetch("/api/auth/register", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ username, password, full_name, email, role: "user" })
         });
         const data = await res.json();
@@ -200,6 +212,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
+        if (data.token) {
+          localStorage.setItem("auth_token", data.token);
+        }
         alert(data.message);
         await checkAuthState();
       } else {

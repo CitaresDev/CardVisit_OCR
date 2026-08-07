@@ -216,20 +216,29 @@ async def export_csv_endpoint(card_list: list):
     )
 
 # --------------------------------------------------------------------------
-# INTERNATIONAL STANDARD AUTHENTICATION ENDPOINTS (JWT + HttpOnly Cookie)
+# INTERNATIONAL STANDARD AUTHENTICATION ENDPOINTS (JWT Cookie + Bearer Token)
 # --------------------------------------------------------------------------
-from fastapi import Cookie
+def extract_token_from_request(request: Request, access_token_cookie: str = None) -> str | None:
+    if access_token_cookie:
+        return access_token_cookie
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header.split(" ", 1)[1].strip()
+    return None
 
 @app.post("/api/auth/login")
-async def login_endpoint(payload: dict, response: Response):
+async def login_endpoint(payload: dict, response: Response, request: Request):
     username = payload.get("username", "").strip()
     password = payload.get("password", "").strip()
 
     if not username or not password:
         raise HTTPException(status_code=400, detail="Vui lòng nhập đầy đủ Username và Mật khẩu.")
 
-    from backend.database.db_manager import SessionLocal, hash_username, verify_password, create_jwt_token
+    from backend.database.db_manager import SessionLocal, hash_username, verify_password, create_jwt_token, seed_default_user
     from backend.database.models import UserCredential, UserProfile
+
+    # Ensure CITARES seed user exists on fresh Neon DB
+    seed_default_user()
 
     db = SessionLocal()
     try:
@@ -238,23 +247,24 @@ async def login_endpoint(payload: dict, response: Response):
         if not cred or not verify_password(password, cred.password_hash):
             raise HTTPException(status_code=401, detail="Tên đăng nhập hoặc mật khẩu không chính xác.")
 
-        # Get profile
         profile = db.query(UserProfile).filter(UserProfile.account_token == cred.account_token).first()
         token = create_jwt_token(cred.account_token)
 
-        # Set Secure HttpOnly Cookie (Prevents XSS stealing!)
+        is_https = request.headers.get("x-forwarded-proto") == "https" or bool(os.getenv("VERCEL")) or request.url.scheme == "https"
+
         response.set_cookie(
             key="access_token",
             value=token,
             httponly=True,
-            samesite="lax",
+            samesite="lax" if not is_https else "none",
             max_age=86400 * 7,
-            secure=False  # Set True when deploying HTTPS
+            secure=is_https
         )
 
         return {
             "success": True,
             "message": "Đăng nhập thành công!",
+            "token": token,
             "user": {
                 "account_token": cred.account_token,
                 "full_name": profile.full_name if profile else username,
@@ -266,15 +276,15 @@ async def login_endpoint(payload: dict, response: Response):
         db.close()
 
 @app.post("/api/auth/register")
-async def register_endpoint(payload: dict, response: Response, access_token: str = Cookie(None)):
+async def register_endpoint(payload: dict, response: Response, request: Request, access_token: str = Cookie(None)):
     from backend.database.db_manager import decode_jwt_token, SessionLocal, hash_username, hash_password, create_jwt_token
     from backend.database.models import UserCredential, UserProfile
 
-    # Security Check: Only Admin can create new user accounts!
-    if not access_token:
+    token_str = extract_token_from_request(request, access_token)
+    if not token_str:
         raise HTTPException(status_code=403, detail="Chưa đăng nhập! Chỉ có tài khoản Admin mới có quyền cấp tài khoản người dùng mới.")
 
-    account_token = decode_jwt_token(access_token)
+    account_token = decode_jwt_token(token_str)
     if not account_token:
         raise HTTPException(status_code=403, detail="Token không hợp lệ.")
 
@@ -330,14 +340,15 @@ async def register_endpoint(payload: dict, response: Response, access_token: str
         db.close()
 
 @app.get("/api/auth/me")
-async def get_current_user_endpoint(access_token: str = Cookie(None)):
-    if not access_token:
+async def get_current_user_endpoint(request: Request, access_token: str = Cookie(None)):
+    token_str = extract_token_from_request(request, access_token)
+    if not token_str:
         return {"authenticated": False}
 
     from backend.database.db_manager import decode_jwt_token, SessionLocal
     from backend.database.models import UserProfile
 
-    account_token = decode_jwt_token(access_token)
+    account_token = decode_jwt_token(token_str)
     if not account_token:
         return {"authenticated": False}
 
