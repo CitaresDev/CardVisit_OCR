@@ -279,31 +279,34 @@ YÊU CẦU:
 def extract_with_gemini_vision(image_bytes: bytes, api_key: str = None) -> dict:
     """
     MAIN ENTRY POINT:
-    Priority 1: NVIDIA Llama 3.2 Vision (using NVIDIA_API_KEY or passed nvapi- key)
+    Priority 1: NVIDIA Llama 3.2 Vision (using NVIDIA_API_KEY)
     Priority 2 (Fallback): Gemini Vision (using GEMINI_API_KEY)
     """
     load_dotenv(override=True)
-    
-    # Check NVIDIA API Key
+    last_error = ""
+
+    # 1. Check NVIDIA API Key
     nvidia_key = api_key if (api_key and api_key.startswith("nvapi-")) else os.getenv("NVIDIA_API_KEY", "").strip().strip('"').strip("'")
-    if nvidia_key and nvidia_key.startswith("nvapi-") and not nvidia_key.endswith("your_nvidia_api_key_here"):
+    if nvidia_key and nvidia_key != "your_nvidia_api_key_here":
         res_nvidia = extract_with_nvidia_llama_vision(image_bytes, api_key=nvidia_key)
         if "error" not in res_nvidia:
             return res_nvidia
-        err_msg = str(res_nvidia.get('error')).encode("ascii", "backslashreplace").decode("ascii")
-        print(f"[WARNING] NVIDIA Llama Vision error: {err_msg}. Fallback to Gemini...")
+        last_error = str(res_nvidia.get("error"))
+        print(f"[WARNING] NVIDIA Llama Vision error: {last_error}. Fallback to Gemini...")
 
-    # Fallback to Gemini API Key
+    # 2. Check Gemini API Key
     gemini_key = api_key if (api_key and not api_key.startswith("nvapi-")) else os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
-    if gemini_key and gemini_key != "your_gemini_api_key_here" and not gemini_key.startswith("nvapi-"):
+    if gemini_key and gemini_key != "your_gemini_api_key_here":
         res_gemini = extract_with_gemini_vision_direct(image_bytes, api_key=gemini_key)
         if "error" not in res_gemini:
             return res_gemini
-        err_msg_g = str(res_gemini.get('error')).encode("ascii", "backslashreplace").decode("ascii")
-        print(f"[WARNING] Gemini Vision error: {err_msg_g}")
+        last_error = str(res_gemini.get("error"))
+        print(f"[WARNING] Gemini Vision error: {last_error}")
+
+    err_msg = last_error if last_error else "Chưa tìm thấy API Key hợp lệ. Vui lòng cài đặt NVIDIA_API_KEY hoặc GEMINI_API_KEY trên Vercel Environment Variables."
 
     return {
-        "error": "Chưa tìm thấy API Key hợp lệ. Vui lòng dán NVIDIA_API_KEY hoặc GEMINI_API_KEY vào file d:\\CARD_VISIT\\.env",
+        "error": err_msg,
         "company_name": "", "full_name": "", "job_title": "",
         "phone": "", "phone_2": "", "email": "", "website": "", "address": "", "tax_code": ""
     }

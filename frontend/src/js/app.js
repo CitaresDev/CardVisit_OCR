@@ -377,7 +377,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (btnOpenCamera) {
     btnOpenCamera.addEventListener("click", (e) => {
       e.stopPropagation();
-      cameraInput.click();
+      fileInput.click();
     });
   }
 
