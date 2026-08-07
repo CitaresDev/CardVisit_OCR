@@ -45,13 +45,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnLogout = document.getElementById("btn-logout");
   const userDisplayName = document.getElementById("user-display-name");
 
-  const tabLogin = document.getElementById("tab-login");
-  const tabRegister = document.getElementById("tab-register");
+  const btnAdminOpenModal = document.getElementById("btn-admin-open-modal");
+  const adminUserModal = document.getElementById("admin-user-modal");
+  const btnCloseAdminModal = document.getElementById("btn-close-admin-modal");
+  const adminCreateForm = document.getElementById("admin-create-form");
+  const btnAdminSubmit = document.getElementById("btn-admin-submit");
+
   const authForm = document.getElementById("auth-form");
-  const authRegisterFields = document.getElementById("auth-register-fields");
   const btnAuthSubmit = document.getElementById("btn-auth-submit");
 
-  let isRegisterMode = false;
   let currentUser = null;
 
   // Check Current User Auth State (/api/auth/me)
@@ -63,12 +65,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         currentUser = data.user;
         if (userDisplayName) userDisplayName.innerText = `${currentUser.full_name || currentUser.email || 'Đã đăng nhập'}`;
         
+        // Show Admin Button if role === 'admin'
+        if (btnAdminOpenModal) {
+          btnAdminOpenModal.style.display = (currentUser.role === 'admin') ? "inline-block" : "none";
+        }
+
         // Unlock Main Application
         loginGateScreen.style.display = "none";
         mainAppContainer.style.display = "block";
       } else {
         currentUser = null;
         if (userDisplayName) userDisplayName.innerText = "Chưa đăng nhập";
+        if (btnAdminOpenModal) btnAdminOpenModal.style.display = "none";
 
         // Lock Main Application (Show Login Gate Screen)
         loginGateScreen.style.display = "flex";
@@ -91,47 +99,68 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  tabLogin.addEventListener("click", () => {
-    isRegisterMode = false;
-    tabLogin.style.background = "#3b82f6";
-    tabLogin.style.color = "white";
-    tabRegister.style.background = "transparent";
-    tabRegister.style.color = "#94a3b8";
-    authRegisterFields.style.display = "none";
-    btnAuthSubmit.innerText = "Đăng Nhập Ngay";
-  });
+  // Admin Create User Modal Handlers
+  if (btnAdminOpenModal) {
+    btnAdminOpenModal.addEventListener("click", () => {
+      adminUserModal.style.display = "flex";
+    });
+  }
 
-  tabRegister.addEventListener("click", () => {
-    isRegisterMode = true;
-    tabRegister.style.background = "#3b82f6";
-    tabRegister.style.color = "white";
-    tabLogin.style.background = "transparent";
-    tabLogin.style.color = "#94a3b8";
-    authRegisterFields.style.display = "block";
-    btnAuthSubmit.innerText = "Tạo Tài Khoản Mới";
-  });
+  if (btnCloseAdminModal) {
+    btnCloseAdminModal.addEventListener("click", () => {
+      adminUserModal.style.display = "none";
+    });
+  }
 
+  if (adminCreateForm) {
+    adminCreateForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = document.getElementById("admin-new-username").value.trim();
+      const password = document.getElementById("admin-new-password").value.trim();
+      const full_name = document.getElementById("admin-new-fullname").value.trim();
+      const email = document.getElementById("admin-new-email").value.trim();
+
+      try {
+        btnAdminSubmit.disabled = true;
+        btnAdminSubmit.innerText = "Đang tạo...";
+
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password, full_name, email, role: "user" })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          alert(data.message);
+          adminUserModal.style.display = "none";
+          adminCreateForm.reset();
+        } else {
+          alert(data.detail || data.message || "Lỗi tạo tài khoản");
+        }
+      } catch (err) {
+        alert("Lỗi kết nối server: " + err.message);
+      } finally {
+        btnAdminSubmit.disabled = false;
+        btnAdminSubmit.innerText = "Cấp Tài Khoản Mới";
+      }
+    });
+  }
+
+  // Normal User Login Handler
   authForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const username = document.getElementById("auth-username").value.trim();
     const password = document.getElementById("auth-password").value.trim();
 
-    const endpoint = isRegisterMode ? "/api/auth/register" : "/api/auth/login";
-    const payload = { username, password };
-
-    if (isRegisterMode) {
-      payload.full_name = document.getElementById("auth-fullname").value.trim();
-      payload.email = document.getElementById("auth-email").value.trim();
-    }
-
     try {
       btnAuthSubmit.disabled = true;
       btnAuthSubmit.innerText = "Đang xử lý...";
 
-      const res = await fetch(endpoint, {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ username, password })
       });
       const data = await res.json();
 
@@ -139,13 +168,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         alert(data.message);
         await checkAuthState();
       } else {
-        alert(data.detail || data.message || "Lỗi xác thực");
+        alert(data.detail || data.message || "Tên đăng nhập hoặc mật khẩu không đúng");
       }
     } catch (err) {
       alert("Lỗi kết nối server: " + err.message);
     } finally {
       btnAuthSubmit.disabled = false;
-      btnAuthSubmit.innerText = isRegisterMode ? "Tạo Tài Khoản Mới" : "Đăng Nhập Ngay";
+      btnAuthSubmit.innerText = "Đăng Nhập Ngay";
     }
   });
 

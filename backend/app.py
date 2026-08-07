@@ -231,20 +231,33 @@ async def login_endpoint(payload: dict, response: Response):
         db.close()
 
 @app.post("/api/auth/register")
-async def register_endpoint(payload: dict, response: Response):
-    username = payload.get("username", "").strip()
-    password = payload.get("password", "").strip()
-    full_name = payload.get("full_name", username).strip()
-    email = payload.get("email", "").strip()
-
-    if not username or not password:
-        raise HTTPException(status_code=400, detail="Username và Mật khẩu không được để trống.")
-
-    from backend.database.db_manager import SessionLocal, hash_username, hash_password, create_jwt_token
+async def register_endpoint(payload: dict, response: Response, access_token: str = Cookie(None)):
+    from backend.database.db_manager import decode_jwt_token, SessionLocal, hash_username, hash_password, create_jwt_token
     from backend.database.models import UserCredential, UserProfile
+
+    # Security Check: Only Admin can create new user accounts!
+    if not access_token:
+        raise HTTPException(status_code=403, detail="Chưa đăng nhập! Chỉ có tài khoản Admin mới có quyền cấp tài khoản người dùng mới.")
+
+    account_token = decode_jwt_token(access_token)
+    if not account_token:
+        raise HTTPException(status_code=403, detail="Token không hợp lệ.")
 
     db = SessionLocal()
     try:
+        current_profile = db.query(UserProfile).filter(UserProfile.account_token == account_token).first()
+        if not current_profile or current_profile.role != "admin":
+            raise HTTPException(status_code=403, detail="Bảo mật: Chỉ có tài khoản Admin mới có quyền tạo tài khoản người dùng mới!")
+
+        username = payload.get("username", "").strip()
+        password = payload.get("password", "").strip()
+        full_name = payload.get("full_name", username).strip()
+        email = payload.get("email", "").strip()
+        role = payload.get("role", "user").strip()
+
+        if not username or not password:
+            raise HTTPException(status_code=400, detail="Username và Mật khẩu không được để trống.")
+
         u_hash = hash_username(username)
         existing = db.query(UserCredential).filter(UserCredential.username_hash == u_hash).first()
         if existing:
@@ -260,29 +273,19 @@ async def register_endpoint(payload: dict, response: Response):
             account_token=cred.account_token,
             full_name=full_name,
             email=email,
-            role="user"
+            role=role
         )
         db.add(profile)
         db.commit()
 
-        token = create_jwt_token(cred.account_token)
-        response.set_cookie(
-            key="access_token",
-            value=token,
-            httponly=True,
-            samesite="lax",
-            max_age=86400 * 7,
-            secure=False
-        )
-
         return {
             "success": True,
-            "message": "Đăng ký tài khoản mới thành công!",
+            "message": f"Admin đã cấp thành công tài khoản mới cho {username}!",
             "user": {
                 "account_token": cred.account_token,
                 "full_name": full_name,
                 "email": email,
-                "role": "user"
+                "role": role
             }
         }
     except Exception as e:
