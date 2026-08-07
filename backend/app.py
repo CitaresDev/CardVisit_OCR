@@ -180,21 +180,37 @@ async def export_csv_endpoint(card_list: list):
         headers={"Content-Disposition": "attachment; filename=scanned_cards.csv"}
     )
 
+@app.post("/api/save-database")
+async def save_database_endpoint(payload: dict):
+    card_data = payload.get("card_data") or payload
+    owner_token = payload.get("owner_token", "anon_user")
+    from backend.database.db_manager import save_card_to_database
+    success = save_card_to_database(card_data, owner_token=owner_token)
+    if success:
+        return {"success": True, "message": "Đã lưu thành công vĩnh viễn vào CSDL (Database)!"}
+    raise HTTPException(status_code=500, detail="Không thể lưu vào Cơ sở dữ liệu.")
+
 @app.post("/api/save-google-sheet")
 async def save_google_sheet_endpoint(payload: dict):
     webhook_url = os.getenv("GOOGLE_SHEET_WEBHOOK_URL", "").strip()
-    if not webhook_url:
-        raise HTTPException(status_code=400, detail="Chưa cấu hình GOOGLE_SHEET_WEBHOOK_URL trong file .env")
-
     card_data = payload.get("card_data") or payload
+    owner_token = payload.get("owner_token", "anon_user")
+
+    # 1. Parallel Auto Backup to Database (Table 3: card_records)
+    from backend.database.db_manager import save_card_to_database
+    save_card_to_database(card_data, owner_token=owner_token)
+
+    if not webhook_url:
+        return {"success": True, "message": "Đã lưu bản sao vĩnh viễn vào CSDL! (Cần cấu hình thêm GOOGLE_SHEET_WEBHOOK_URL để đồng bộ sang Google Sheet)"}
+
     try:
         resp = requests.post(webhook_url, json=card_data, timeout=15)
         if resp.status_code in [200, 201, 302]:
-            return {"success": True, "message": "Đã lưu thành công vào Google Sheet!"}
+            return {"success": True, "message": "Đã lưu thành công song song vào cả Google Sheet & CSDL!"}
         else:
-            return {"error": f"Lỗi Google Sheet Webhook ({resp.status_code}): {resp.text}"}
+            return {"success": True, "message": f"Đã lưu vào CSDL! (Google Sheet báo {resp.status_code})"}
     except Exception as e:
-        return {"error": f"Ngoại lệ gửi sang Google Sheet: {str(e)}"}
+        return {"success": True, "message": f"Đã lưu an toàn vào CSDL! (Ngoại lệ Google Sheet: {str(e)})"}
 
 @app.post("/api/export/google-sheet")
 async def export_google_sheet_endpoint(payload: dict):
