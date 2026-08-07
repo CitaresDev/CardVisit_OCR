@@ -5,6 +5,28 @@ import requests
 import re
 from dotenv import load_dotenv
 
+def clean_value(val: str) -> str:
+    if not val:
+        return ""
+    v = str(val).strip()
+    v = re.sub(r"^[\*\"\'\`\#\-\:\s]+", "", v)
+    v = re.sub(r"[\*\"\'\`\#\s]+$", "", v)
+    v = v.strip()
+    if v.lower() in ["none", "null", "n/a", "undefined"]:
+        return ""
+    return v
+
+def clean_extracted_dict(data: dict) -> dict:
+    if not isinstance(data, dict):
+        return data
+    cleaned = {}
+    for k, v in data.items():
+        if isinstance(v, str) and k != "engine" and k != "error":
+            cleaned[k] = clean_value(v)
+        else:
+            cleaned[k] = v
+    return cleaned
+
 def parse_robust_json(text_content: str) -> dict:
     """
     Dual-mode parser: Parses JSON objects AND key-value bullet points (* key: val).
@@ -206,6 +228,7 @@ YÊU CẦU:
         if not res_dict.get("company_name") and not res_dict.get("full_name") and not res_dict.get("phone"):
             return {"error": "NVIDIA Llama Vision returned empty extraction result"}
 
+        res_dict = clean_extracted_dict(res_dict)
         res_dict = split_multiple_phones(res_dict)
         return auto_fill_phone_2_hybrid(res_dict, image_bytes)
     except Exception as e:
@@ -285,6 +308,7 @@ YÊU CẦU:
             "address": parsed.get("address", ""),
             "tax_code": parsed.get("tax_code", "")
         }
+        res_dict = clean_extracted_dict(res_dict)
         res_dict = split_multiple_phones(res_dict)
         return auto_fill_phone_2_hybrid(res_dict, image_bytes)
     except Exception as e:
