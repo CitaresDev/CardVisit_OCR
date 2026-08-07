@@ -40,6 +40,41 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --------------------------------------------------------------------------
+# ANTI-SPAM RATE LIMITER MIDDLEWARE (Chống spam request liên tục)
+# --------------------------------------------------------------------------
+from collections import defaultdict
+from fastapi import Request
+
+RATE_LIMIT_STORE = defaultdict(list)
+MAX_REQUESTS_PER_MINUTE = 10
+WINDOW_SECONDS = 60
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    # Only limit sensitive heavy API endpoints
+    path = request.url.path
+    if path in ["/api/extract", "/api/auth/login", "/api/save-database", "/api/save-google-sheet"]:
+        client_ip = request.client.host if request.client else "unknown"
+        now = time.time()
+        
+        # Clean timestamps older than 60 seconds
+        RATE_LIMIT_STORE[client_ip] = [
+            t for t in RATE_LIMIT_STORE[client_ip] if now - t < WINDOW_SECONDS
+        ]
+        
+        if len(RATE_LIMIT_STORE[client_ip]) >= MAX_REQUESTS_PER_MINUTE:
+            return Response(
+                content=json.dumps({"detail": "Cảnh báo bảo mật (429): Bạn đang gửi request quá nhanh! Vui lòng chờ 60 giây trước khi thử lại."}, ensure_ascii=False),
+                status_code=429,
+                media_type="application/json"
+            )
+            
+        RATE_LIMIT_STORE[client_ip].append(now)
+
+    response = await call_next(request)
+    return response
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 CARD_TEST_DIR = os.path.join(BASE_DIR, "Card_test")
