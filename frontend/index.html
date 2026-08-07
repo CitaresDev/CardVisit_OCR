@@ -118,15 +118,23 @@
           </button>
         </div>
 
-        <!-- Batch Processing Queue Banner -->
-        <div id="batch-queue-banner" style="display: none; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 10px; padding: 10px 14px; margin-bottom: 1rem; text-align: center; color: #60a5fa; font-size: 0.85rem; font-weight: 600;">
-          <span>⏳ Hàng Đợi Xử Lý: </span>
-          <span id="queue-status-text">Đang xử lý...</span>
+        <!-- Card Batch Queue & Review Bar -->
+        <div id="card-queue-container" style="display: none; margin-bottom: 1rem; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 10px 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="font-size: 0.85rem; font-weight: 600; color: #60a5fa; display: flex; align-items: center; gap: 6px;">
+              <span>🗂️ Danh Sách Danh Thiếp (Nhấn để chọn & duyệt)</span>
+              <span id="queue-badge-count" style="background: rgba(59, 130, 246, 0.25); color: #93c5fd; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem;">(0 thẻ)</span>
+            </div>
+            <button type="button" id="btn-clear-queue" style="background: transparent; border: none; color: #ef4444; font-size: 0.75rem; cursor: pointer;">Xóa danh sách</button>
+          </div>
+          <div id="card-queue-thumbs" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin;">
+            <!-- Dynamic Card Thumbnails Rendered Here -->
+          </div>
         </div>
 
         <!-- Drop Zone & File Drag-and-Drop Area -->
-        <div class="drop-zone" id="drop-zone" style="padding: 1.25rem 1rem;">
-          <div class="upload-text" style="font-size: 0.9rem;">Kéo & thả một hoặc nhiều ảnh card vào đây (Hỗ trợ JPG, PNG, WEBP)</div>
+        <div class="drop-zone" id="drop-zone" style="padding: 1rem;">
+          <div class="upload-text" style="font-size: 0.85rem;">Kéo & thả một hoặc nhiều ảnh card vào đây (Hỗ trợ JPG, PNG, WEBP)</div>
         </div>
 
         <!-- Preview Canvas Area -->

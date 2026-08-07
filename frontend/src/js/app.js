@@ -398,74 +398,152 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
 
-  const batchQueueBanner = document.getElementById("batch-queue-banner");
-  const queueStatusText = document.getElementById("queue-status-text");
-  let fileQueue = [];
+  const cardQueueContainer = document.getElementById("card-queue-container");
+  const cardQueueThumbs = document.getElementById("card-queue-thumbs");
+  const queueBadgeCount = document.getElementById("queue-badge-count");
+  const btnClearQueue = document.getElementById("btn-clear-queue");
+
+  let cardQueueList = [];
+  let activeCardId = null;
+  let cardIdCounter = 1;
   let isExtracting = false;
 
-  const updateQueueUI = () => {
-    if (!batchQueueBanner || !queueStatusText) return;
-    if (fileQueue.length > 0) {
-      batchQueueBanner.style.display = "block";
-      queueStatusText.innerText = `Còn ${fileQueue.length} ảnh trong hàng đợi... (Tự động chạy nối tiếp)`;
-    } else {
-      batchQueueBanner.style.display = "none";
+  const renderQueueThumbs = () => {
+    if (!cardQueueContainer || !cardQueueThumbs) return;
+
+    if (cardQueueList.length === 0) {
+      cardQueueContainer.style.display = "none";
+      cardQueueThumbs.innerHTML = "";
+      if (queueBadgeCount) queueBadgeCount.innerText = "(0 thẻ)";
+      return;
     }
+
+    cardQueueContainer.style.display = "block";
+    const extractedCount = cardQueueList.filter(c => c.status === "extracted").length;
+    if (queueBadgeCount) queueBadgeCount.innerText = `(${extractedCount}/${cardQueueList.length} đã đọc)`;
+
+    cardQueueThumbs.innerHTML = "";
+
+    cardQueueList.forEach((card, idx) => {
+      const thumbEl = document.createElement("div");
+      const isActive = (card.id === activeCardId);
+      const isDone = (card.status === "extracted");
+
+      thumbEl.style.cssText = `
+        position: relative;
+        flex: 0 0 auto;
+        width: 76px;
+        height: 54px;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        border: 2px solid ${isActive ? '#3b82f6' : isDone ? '#10b981' : 'rgba(255, 255, 255, 0.25)'};
+        background: #0f172a;
+        box-shadow: ${isActive ? '0 0 10px rgba(59, 130, 246, 0.6)' : '0 2px 6px rgba(0,0,0,0.3)'};
+        transition: all 0.2s ease;
+      `;
+
+      thumbEl.innerHTML = `
+        <img src="${card.dataUrl}" style="width: 100%; height: 100%; object-fit: cover;" />
+        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: ${isDone ? 'rgba(16, 185, 129, 0.85)' : 'rgba(0,0,0,0.75)'}; color: #fff; font-size: 0.65rem; text-align: center; padding: 2px 0; font-weight: 600;">
+          ${isDone ? '✓ Đã đọc' : `Thẻ #${idx + 1}`}
+        </div>
+      `;
+
+      thumbEl.addEventListener("click", () => {
+        switchActiveCard(card.id);
+      });
+
+      cardQueueThumbs.appendChild(thumbEl);
+    });
   };
+
+  const switchActiveCard = (cardId) => {
+    const card = cardQueueList.find(c => c.id === cardId);
+    if (!card) return;
+
+    activeCardId = card.id;
+    selectedFile = card.file;
+    selectedSampleName = null;
+
+    // Nạp ảnh lên canvas cropper để người dùng kéo 4 góc
+    cropper.loadImage(card.dataUrl);
+
+    // Nếu thẻ đã trích xuất trước đó, nạp dữ liệu cũ để người dùng review & lưu
+    if (card.status === "extracted" && card.extractedData) {
+      renderSingleResult(card.extractedData);
+    } else {
+      clearForm();
+    }
+
+    renderQueueThumbs();
+  };
+
+  const addFilesToQueue = (files) => {
+    if (!files || files.length === 0) return;
+    const fileList = Array.from(files);
+    let loadedCount = 0;
+    const firstIndex = cardQueueList.length;
+
+    fileList.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newCard = {
+          id: `card_${Date.now()}_${cardIdCounter++}`,
+          file: file,
+          dataUrl: e.target.result,
+          name: file.name || `Thẻ #${cardQueueList.length + 1}`,
+          status: "pending",
+          extractedData: null
+        };
+        cardQueueList.push(newCard);
+        loadedCount++;
+
+        if (loadedCount === fileList.length) {
+          if (!activeCardId || !cardQueueList.find(c => c.id === activeCardId)) {
+            switchActiveCard(cardQueueList[firstIndex].id);
+          } else {
+            renderQueueThumbs();
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  if (btnClearQueue) {
+    btnClearQueue.addEventListener("click", () => {
+      if (confirm("Xóa tất cả các thẻ trong danh sách hàng đợi?")) {
+        cardQueueList = [];
+        activeCardId = null;
+        selectedFile = null;
+        clearForm();
+        renderQueueThumbs();
+      }
+    });
+  }
 
   dropZone.addEventListener("drop", (e) => {
     e.preventDefault();
     dropZone.classList.remove("dragover");
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleMultipleFilesSelected(e.dataTransfer.files);
+      addFilesToQueue(e.dataTransfer.files);
     }
   });
 
   fileInput.addEventListener("change", (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      handleMultipleFilesSelected(e.target.files);
+      addFilesToQueue(e.target.files);
     }
   });
 
   if (cameraInput) {
     cameraInput.addEventListener("change", (e) => {
       if (e.target.files && e.target.files.length > 0) {
-        handleMultipleFilesSelected(e.target.files);
+        addFilesToQueue(e.target.files);
       }
     });
   }
-
-  const handleMultipleFilesSelected = (files) => {
-    if (!files || files.length === 0) return;
-    const fileList = Array.from(files);
-
-    if (isExtracting) {
-      // AI đang xử lý 1 ảnh: Tự động xếp tất cả các ảnh mới vào hàng đợi
-      fileQueue.push(...fileList);
-      updateQueueUI();
-    } else {
-      // AI rảnh: Nạp ảnh thứ 1 và xếp các ảnh còn lại vào hàng đợi
-      handleFileSelected(fileList[0]);
-      if (fileList.length > 1) {
-        fileQueue.push(...fileList.slice(1));
-        updateQueueUI();
-      }
-    }
-  };
-
-  const handleFileSelected = (file) => {
-    selectedFile = file;
-    selectedSampleName = null;
-    lastExtractionCache = { v1: null, v2: null, compare: null };
-    clearForm();
-    document.querySelectorAll(".sample-thumb").forEach(t => t.classList.remove("selected"));
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      cropper.loadImage(e.target.result);
-    };
-    reader.readAsDataURL(file);
-  };
 
   // Copy to Clipboard Handlers
   document.querySelectorAll(".btn-copy").forEach(btn => {
@@ -484,6 +562,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Core Extract Trigger Handler
   btnExtract.addEventListener("click", async () => {
     if (isExtracting) return;
+    const activeCard = cardQueueList.find(c => c.id === activeCardId);
+    if (!activeCard && !selectedFile) {
+      alert("Vui lòng chọn hoặc tải 1 thẻ danh thiếp để trích xuất.");
+      return;
+    }
+
     isExtracting = true;
     btnExtract.disabled = true;
     btnExtract.innerHTML = `<span class="spinner"></span> Đang trích xuất...`;
@@ -493,37 +577,29 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
       const res = await ApiClient.extractCardInfo({
-        file: selectedFile,
+        file: activeCard ? activeCard.file : selectedFile,
         sampleFilename: selectedSampleName,
         engine: selectedEngine,
         apiKey: apiKey,
         cropPoints: cropPoints
       });
 
-      if (selectedEngine === "compare") {
-        lastExtractionCache.compare = res;
-        if (res.v1) lastExtractionCache.v1 = res.v1;
-        if (res.v2) lastExtractionCache.v2 = res.v2;
-        renderCompareResults(res.v1, res.v2);
-      } else {
-        lastExtractionCache[selectedEngine] = res.result;
-        renderSingleResult(res.result);
+      const extractedResult = res.result || res.v1 || res;
+
+      // Lưu kết quả trích xuất vào thẻ đang chọn và đánh dấu đã đọc
+      if (activeCard) {
+        activeCard.extractedData = extractedResult;
+        activeCard.status = "extracted";
       }
+
+      renderSingleResult(extractedResult);
+      renderQueueThumbs();
     } catch (e) {
       alert("Lỗi trích xuất: " + e.message);
     } finally {
       isExtracting = false;
       btnExtract.disabled = false;
       btnExtract.innerHTML = `Trích Xuất Dữ Liệu`;
-
-      if (fileQueue.length > 0) {
-        const nextFile = fileQueue.shift();
-        updateQueueUI();
-        setTimeout(() => {
-          handleFileSelected(nextFile);
-          btnExtract.click();
-        }, 600);
-      }
     }
   });
 
