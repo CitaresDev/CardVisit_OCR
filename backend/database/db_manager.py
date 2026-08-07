@@ -9,6 +9,7 @@ from backend.database.models import Base, UserCredential, UserProfile, CardRecor
 
 # Environment DB URL (PostgreSQL on Vercel/Neon/Cloud, SQLite local fallback)
 DATABASE_URL = (
+    os.getenv("POSTGRES_DATABASE_URL") or
     os.getenv("POSTGRES_URL") or
     os.getenv("DATABASE_URL") or
     os.getenv("STORAGE_URL") or

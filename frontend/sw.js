@@ -1,4 +1,4 @@
-const CACHE_NAME = 'card-reader-v30';
+const CACHE_NAME = 'card-reader-v31';
 const ASSETS_TO_CACHE = [
   '/',
   '/static/css/style.css',
