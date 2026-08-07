@@ -66,6 +66,8 @@ def decode_jwt_token(token: str) -> str | None:
         return None
 
 def seed_default_user():
+    admin_user = os.getenv("DEFAULT_ADMIN_USER", "CITARES")
+    admin_pass = os.getenv("DEFAULT_ADMIN_PASS", "123456")
     try:
         # Guarantee tables exist on PostgreSQL / SQLite
         Base.metadata.create_all(bind=engine)
@@ -74,11 +76,11 @@ def seed_default_user():
 
     db = SessionLocal()
     try:
-        u_hash = hash_username("CITARES")
+        u_hash = hash_username(admin_user)
         existing = db.query(UserCredential).filter(UserCredential.username_hash == u_hash).first()
         if not existing:
-            # Create Seed Account: CITARES / 123456
-            p_hash = hash_password("123456")
+            # Create Seed Account with hashed password
+            p_hash = hash_password(admin_pass)
             cred = UserCredential(username_hash=u_hash, password_hash=p_hash)
             db.add(cred)
             db.commit()
