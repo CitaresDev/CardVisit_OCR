@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.database.models import Base, UserCredential, UserProfile, CardRecord
 
-# Environment DB URL (PostgreSQL on Vercel/Neon/Cloud, SQLite local fallback)
+# Environment DB URL (PostgreSQL on Vercel/Neon/Cloud)
 DATABASE_URL = (
     os.getenv("POSTGRES_DATABASE_URL") or
     os.getenv("POSTGRES_URL") or
