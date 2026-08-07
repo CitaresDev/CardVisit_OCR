@@ -401,12 +401,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const batchQueueBanner = document.getElementById("batch-queue-banner");
   const queueStatusText = document.getElementById("queue-status-text");
   let fileQueue = [];
+  let isExtracting = false;
 
   const updateQueueUI = () => {
     if (!batchQueueBanner || !queueStatusText) return;
     if (fileQueue.length > 0) {
       batchQueueBanner.style.display = "block";
-      queueStatusText.innerText = `Còn ${fileQueue.length} ảnh trong hàng đợi...`;
+      queueStatusText.innerText = `Còn ${fileQueue.length} ảnh trong hàng đợi... (Tự động chạy nối tiếp)`;
     } else {
       batchQueueBanner.style.display = "none";
     }
@@ -437,10 +438,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   const handleMultipleFilesSelected = (files) => {
     if (!files || files.length === 0) return;
     const fileList = Array.from(files);
-    handleFileSelected(fileList[0]);
-    if (fileList.length > 1) {
-      fileQueue.push(...fileList.slice(1));
+
+    if (isExtracting) {
+      // AI đang xử lý 1 ảnh: Tự động xếp tất cả các ảnh mới vào hàng đợi
+      fileQueue.push(...fileList);
       updateQueueUI();
+    } else {
+      // AI rảnh: Nạp ảnh thứ 1 và xếp các ảnh còn lại vào hàng đợi
+      handleFileSelected(fileList[0]);
+      if (fileList.length > 1) {
+        fileQueue.push(...fileList.slice(1));
+        updateQueueUI();
+      }
     }
   };
 
@@ -474,6 +483,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Core Extract Trigger Handler
   btnExtract.addEventListener("click", async () => {
+    if (isExtracting) return;
+    isExtracting = true;
     btnExtract.disabled = true;
     btnExtract.innerHTML = `<span class="spinner"></span> Đang trích xuất...`;
 
@@ -501,6 +512,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (e) {
       alert("Lỗi trích xuất: " + e.message);
     } finally {
+      isExtracting = false;
       btnExtract.disabled = false;
       btnExtract.innerHTML = `Trích Xuất Dữ Liệu`;
 
@@ -510,7 +522,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         setTimeout(() => {
           handleFileSelected(nextFile);
           btnExtract.click();
-        }, 800);
+        }, 600);
       }
     }
   });
