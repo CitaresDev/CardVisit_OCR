@@ -13,7 +13,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Response
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Response, BackgroundTasks, Cookie
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -421,14 +421,99 @@ async def save_google_sheet_endpoint(payload: dict, access_token: str = Cookie(N
     if not webhook_url:
         return {"success": True, "message": "Đã lưu bản sao vĩnh viễn vào CSDL! (Cần cấu hình thêm GOOGLE_SHEET_WEBHOOK_URL để đồng bộ sang Google Sheet)"}
 
+@app.get("/api/cards/history")
+async def get_card_history_endpoint(access_token: str = Cookie(None)):
+    from backend.database.db_manager import decode_jwt_token, SessionLocal
+    from backend.database.models import CardRecord, UserProfile
+
+    if not access_token:
+        return {"history": []}
+
+    account_token = decode_jwt_token(access_token)
+    if not account_token:
+        return {"history": []}
+
+    db = SessionLocal()
     try:
-        resp = requests.post(webhook_url, json=card_data, timeout=15)
-        if resp.status_code in [200, 201, 302]:
-            return {"success": True, "message": "Đã lưu thành công song song vào cả Google Sheet & CSDL!"}
+        prof = db.query(UserProfile).filter(UserProfile.account_token == account_token).first()
+        if prof and prof.role == "admin":
+            # Admin sees all card records
+            records = db.query(CardRecord).order_by(CardRecord.card_id.desc()).limit(50).all()
         else:
-            return {"success": True, "message": f"Đã lưu vào CSDL! (Google Sheet báo {resp.status_code})"}
+            # Regular user sees their own scanned cards
+            records = db.query(CardRecord).filter(CardRecord.owner_token == account_token).order_by(CardRecord.card_id.desc()).limit(50).all()
+
+        history_list = []
+        for r in records:
+            history_list.append({
+                "id": r.card_id,
+                "company_name": r.company_name,
+                "full_name": r.full_name,
+                "job_title": r.job_title,
+                "phone": r.phone,
+                "phone_2": r.phone_2,
+                "email": r.email,
+                "website": r.website,
+                "address": r.address,
+                "scanned_by": r.scanned_by,
+                "created_at": r.created_at.strftime("%Y-%m-%d %H:%M:%S") if r.created_at else ""
+            })
+        return {"history": history_list}
+    finally:
+        db.close()
+
+# --------------------------------------------------------------------------
+# RESILIENT BACKGROUND WORKER TASK (Dù thoát app giữa chừng vẫn lưu DB 100%)
+# --------------------------------------------------------------------------
+def run_background_card_processing(image_bytes: bytes, owner_token: str, scanned_by: str, api_key: str = None):
+    try:
+        print(f"[BACKGROUND WORKER]: Starting background AI vision extraction for {scanned_by}...")
+        res = extract_with_gemini_vision(image_bytes, api_key=api_key)
+        if res and "error" not in res:
+            res["scanned_by"] = scanned_by
+            from backend.database.db_manager import save_card_to_database
+            save_card_to_database(res, owner_token=owner_token, scanned_by=scanned_by)
+            print(f"[BACKGROUND WORKER SUCCESS]: Card for {res.get('full_name')} saved to DB automatically!")
+        else:
+            print(f"[BACKGROUND WORKER ERROR]: {res.get('error')}")
     except Exception as e:
-        return {"success": True, "message": f"Đã lưu an toàn vào CSDL! (Ngoại lệ Google Sheet: {str(e)})"}
+        print(f"[BACKGROUND WORKER EXCEPTION]: {e}")
+
+@app.post("/api/extract-background")
+async def extract_card_background_endpoint(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    access_token: str = Cookie(None)
+):
+    image_bytes = await file.read()
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="Vui lòng gửi file ảnh card hợp lệ.")
+
+    from backend.database.db_manager import decode_jwt_token, SessionLocal
+    from backend.database.models import UserProfile
+
+    owner_token = "anon_user"
+    scanned_by = "Người dùng vô danh"
+
+    if access_token:
+        acc_tok = decode_jwt_token(access_token)
+        if acc_tok:
+            owner_token = acc_tok
+            db = SessionLocal()
+            try:
+                prof = db.query(UserProfile).filter(UserProfile.account_token == acc_tok).first()
+                if prof:
+                    scanned_by = prof.full_name or prof.email
+            finally:
+                db.close()
+
+    # Enqueue background task (Runs asynchronously on server EVEN IF USER CLOSES APP)
+    background_tasks.add_task(run_background_card_processing, image_bytes, owner_token, scanned_by)
+
+    return {
+        "status": "processing",
+        "message": f"Server đã nhận ảnh thành công! Dù bạn tắt app hay thoát trình duyệt, hệ thống vẫn đang trích xuất ngầm và sẽ tự động lưu vào CSDL cho {scanned_by}."
+    }
 
 @app.post("/api/export/google-sheet")
 async def export_google_sheet_endpoint(payload: dict):

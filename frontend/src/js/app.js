@@ -56,6 +56,40 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let currentUser = null;
 
+  const dbHistoryList = document.getElementById("db-history-list");
+  const btnRefreshHistory = document.getElementById("btn-refresh-history");
+
+  const loadCardHistory = async () => {
+    if (!dbHistoryList) return;
+    try {
+      const res = await fetch("/api/cards/history");
+      const data = await res.json();
+      dbHistoryList.innerHTML = "";
+      if (!data.history || data.history.length === 0) {
+        dbHistoryList.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">Chưa có card nào trong CSDL</span>`;
+        return;
+      }
+      data.history.forEach(item => {
+        const cardEl = document.createElement("div");
+        cardEl.style.cssText = "background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;";
+        cardEl.innerHTML = `
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 600; color: #f8fafc;">${item.full_name || 'Chưa rõ tên'} (${item.company_name || 'Công ty N/A'})</div>
+            <div style="font-size: 0.75rem; color: #94a3b8;">SĐT: ${item.phone || 'N/A'} | Quét bởi: <span style="color: #60a5fa;">${item.scanned_by || 'N/A'}</span></div>
+          </div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); text-align: right;">${item.created_at || ''}</div>
+        `;
+        dbHistoryList.appendChild(cardEl);
+      });
+    } catch (e) {
+      console.log("Load card history error:", e);
+    }
+  };
+
+  if (btnRefreshHistory) {
+    btnRefreshHistory.addEventListener("click", loadCardHistory);
+  }
+
   // Check Current User Auth State (/api/auth/me)
   const checkAuthState = async () => {
     try {
@@ -73,6 +107,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Unlock Main Application
         loginGateScreen.style.display = "none";
         mainAppContainer.style.display = "block";
+        loadCardHistory();
       } else {
         currentUser = null;
         if (userDisplayName) userDisplayName.innerText = "Chưa đăng nhập";
