@@ -7,8 +7,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.database.models import Base, UserCredential, UserProfile, CardRecord
 
-# Environment DB URL (PostgreSQL on Vercel/Cloud, SQLite local fallback)
-DATABASE_URL = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
+# Environment DB URL (PostgreSQL on Vercel/Neon/Cloud, SQLite local fallback)
+DATABASE_URL = (
+    os.getenv("POSTGRES_URL") or
+    os.getenv("DATABASE_URL") or
+    os.getenv("STORAGE_URL") or
+    os.getenv("NEON_URL") or
+    os.getenv("NEON_DATABASE_URL") or
+    os.getenv("POSTGRES_PRISMA_URL")
+)
 JWT_SECRET = os.getenv("JWT_SECRET_KEY", "citares_secure_jwt_secret_key_2026_pro")
 JWT_ALGORITHM = "HS256"
 
