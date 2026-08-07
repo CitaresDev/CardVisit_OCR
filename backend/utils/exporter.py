@@ -78,20 +78,23 @@ def generate_excel(card_data_list: list) -> bytes:
 
 def generate_csv(card_data_list: list) -> bytes:
     """Generates CSV file bytes for export."""
-    df = pd.DataFrame(card_data_list)
+    sanitized = sanitize_card_data(card_data_list)
+    df = pd.DataFrame(sanitized)
     output = io.StringIO()
     df.to_csv(output, index=False, encoding='utf-8-sig')
     return output.getvalue().encode("utf-8-sig")
 
 def export_to_excel(card_data_list: list, filepath: str):
     """Exports card data list to Excel file path."""
-    df = pd.DataFrame(card_data_list)
+    sanitized = sanitize_card_data(card_data_list)
+    df = pd.DataFrame(sanitized)
     df.to_excel(filepath, index=False)
     return filepath
 
 def export_to_csv(card_data_list: list, filepath: str):
     """Exports card data list to CSV file path."""
-    df = pd.DataFrame(card_data_list)
+    sanitized = sanitize_card_data(card_data_list)
+    df = pd.DataFrame(sanitized)
     df.to_csv(filepath, index=False, encoding='utf-8-sig')
     return filepath
 
@@ -102,7 +105,7 @@ def send_to_google_sheet(card_data: dict | list, webhook_url: str) -> dict:
         return {"success": False, "error": "Google Sheet Webhook URL chưa được cấu hình hoặc không hợp lệ."}
     
     headers = {"Content-Type": "application/json"}
-    payload = card_data if isinstance(card_data, (list, dict)) else {"data": card_data}
+    payload = sanitize_card_data(card_data)
     
     try:
         resp = requests.post(webhook_url, json=payload, headers=headers, timeout=15)
