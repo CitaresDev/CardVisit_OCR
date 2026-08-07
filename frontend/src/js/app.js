@@ -167,70 +167,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
-  // Engine Switch Handler
-  engineBtns.forEach(btn => {
-    btn.addEventListener("click", () => {
-      engineBtns.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      selectedEngine = btn.dataset.engine;
+  // Ensure selectedEngine is locked to v1 (Cloud AI Vision)
+  selectedEngine = "v1";
 
-      if (selectedEngine === "compare") {
-        singleResultPanel.style.display = "none";
-        compareResultPanel.style.display = "grid";
-        if (lastExtractionCache.compare) {
-          renderCompareResults(lastExtractionCache.compare.v1, lastExtractionCache.compare.v2);
-        }
-      } else {
-        singleResultPanel.style.display = "block";
-        compareResultPanel.style.display = "none";
-        if (lastExtractionCache[selectedEngine]) {
-          renderSingleResult(lastExtractionCache[selectedEngine]);
-        } else if (selectedEngine === "v1" && lastExtractionCache.compare && lastExtractionCache.compare.v1) {
-          renderSingleResult(lastExtractionCache.compare.v1);
-        } else if (selectedEngine === "v2" && lastExtractionCache.compare && lastExtractionCache.compare.v2) {
-          renderSingleResult(lastExtractionCache.compare.v2);
-        }
-      }
+  const btnOpenCamera = document.getElementById("btn-open-camera");
+  const btnOpenGallery = document.getElementById("btn-open-gallery");
+
+  if (btnOpenCamera) {
+    btnOpenCamera.addEventListener("click", (e) => {
+      e.stopPropagation();
+      cameraInput.click();
     });
-  });
+  }
 
-  // Load Sample Cards
-  const loadSamples = async () => {
-    const data = await ApiClient.getSampleCards();
-    samplesGrid.innerHTML = "";
-    if (!data.samples || data.samples.length === 0) {
-      samplesGrid.innerHTML = `<span style="grid-column: span 4; color: var(--text-muted); font-size: 0.8rem;">Không tìm thấy ảnh mẫu</span>`;
-      return;
-    }
-
-    data.samples.forEach((filename, idx) => {
-      const sampleUrl = `/api/sample-cards/${filename}`;
-      const thumb = document.createElement("div");
-      thumb.className = `sample-thumb ${idx === 0 ? 'selected' : ''}`;
-      thumb.innerHTML = `<img src="${sampleUrl}" alt="${filename}"><span style="position: absolute; bottom: 2px; right: 4px; font-size: 0.65rem; background: rgba(0,0,0,0.7); padding: 1px 4px; border-radius: 4px;">${filename}</span>`;
-      
-      thumb.addEventListener("click", () => {
-        document.querySelectorAll(".sample-thumb").forEach(t => t.classList.remove("selected"));
-        thumb.classList.add("selected");
-        selectedFile = null;
-        selectedSampleName = filename;
-        lastExtractionCache = { v1: null, v2: null, compare: null };
-        clearForm();
-        cropper.loadImage(sampleUrl);
-      });
-
-      samplesGrid.appendChild(thumb);
+  if (btnOpenGallery) {
+    btnOpenGallery.addEventListener("click", (e) => {
+      e.stopPropagation();
+      fileInput.click();
     });
-
-    // Load first sample by default
-    if (data.samples.length > 0) {
-      const firstUrl = `/api/sample-cards/${data.samples[0]}`;
-      selectedSampleName = data.samples[0];
-      cropper.loadImage(firstUrl);
-    }
-  };
-
-  await loadSamples();
+  }
 
   // Drag & Drop & File Upload Handlers
   dropZone.addEventListener("click", () => fileInput.click());
@@ -255,10 +210,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       handleFileSelected(e.target.files[0]);
     }
   });
-
-  if (btnCameraMobile) {
-    btnCameraMobile.addEventListener("click", () => cameraInput.click());
-  }
 
   if (cameraInput) {
     cameraInput.addEventListener("change", (e) => {
@@ -326,7 +277,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       alert("Lỗi trích xuất: " + e.message);
     } finally {
       btnExtract.disabled = false;
-      btnExtract.innerHTML = `✨ Trích Xuất Dữ Liệu`;
+      btnExtract.disabled = false;
+      btnExtract.innerHTML = `Trích Xuất Dữ Liệu`;
     }
   });
 
@@ -391,19 +343,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     try {
-      if (btnSyncGsheet) btnSyncGsheet.innerText = "⏳ Đang gửi...";
+      if (btnSyncGsheet) btnSyncGsheet.innerText = "Đang gửi...";
       await ApiClient.saveToGoogleSheet(cardToExport);
       if (btnSyncGsheet) {
-        btnSyncGsheet.innerText = "✓ Đã lưu Sheet!";
-        setTimeout(() => btnSyncGsheet.innerText = "📊 Lưu sang Google Sheet", 2000);
+        btnSyncGsheet.innerText = "Đã lưu Sheet!";
+        setTimeout(() => btnSyncGsheet.innerText = "Lưu sang Google Sheet", 2000);
       }
       if (showSuccessAlert) {
-        alert("✓ Đã lưu dữ liệu danh thiếp vào Google Sheet thành công!");
+        alert("Đã lưu dữ liệu danh thiếp vào Google Sheet thành công!");
       }
       return true;
     } catch (e) {
-      if (btnSyncGsheet) btnSyncGsheet.innerText = "❌ Lỗi lưu Sheet";
-      setTimeout(() => btnSyncGsheet.innerText = "📊 Lưu sang Google Sheet", 2000);
+      if (btnSyncGsheet) btnSyncGsheet.innerText = "Lỗi lưu Sheet";
+      setTimeout(() => btnSyncGsheet.innerText = "Lưu sang Google Sheet", 2000);
       alert("Lỗi lưu Google Sheet: " + e.message);
       return false;
     }

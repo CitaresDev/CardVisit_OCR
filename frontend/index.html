@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Card Visit Reader & Extractor (Desktop, Mobile & Android App)</title>
+  <title>Business Card Extractor</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0f172a">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +16,7 @@
   <!-- App Header -->
   <header class="app-header">
     <div class="brand-title">
-      <span>🎴 Business Card Extractor</span>
+      <span>Business Card Extractor</span>
       <span class="brand-badge">Cross-Platform (Web & App)</span>
     </div>
     <div style="font-size: 0.8rem; color: var(--text-muted);">
@@ -30,38 +30,25 @@
     <!-- LEFT PANEL: Image Upload & Canvas Cropper -->
     <section class="glass-panel">
       <h2 class="panel-title">
-        <span>📷 Tải / Chụp Ảnh Card Visit</span>
+        <span>Tải / Chụp Ảnh Card Visit</span>
       </h2>
 
-      <!-- Engine Selector -->
-      <div class="engine-toggle-group">
-        <button class="engine-btn active" data-engine="v1">✨ Version 1: Cloud AI Vision</button>
-        <button class="engine-btn" data-engine="v2">💻 Version 2: Local OCR</button>
-        <button class="engine-btn" data-engine="compare">⚡ Compare Both</button>
-      </div>
-
-
-
-      <!-- Drop Zone & File Upload -->
-      <div class="drop-zone" id="drop-zone">
-        <div class="upload-icon">📁</div>
-        <div class="upload-text">Kéo & thả tệp ảnh card vào đây, hoặc <span style="color: var(--accent-blue); text-decoration: underline;">Chọn tệp</span></div>
-        <div class="upload-subtext">Hỗ trợ JPG, PNG, WEBP (Tối đa 10MB)</div>
-        <input type="file" id="file-input" accept="image/*" style="display: none;">
-        
-        <!-- Mobile Camera Input -->
+      <!-- Dual Action Mobile Buttons -->
+      <div class="mobile-action-bar" style="display: flex; gap: 10px; margin-bottom: 1rem;">
         <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;">
-        <button type="button" class="btn-camera-mobile" id="btn-camera-mobile">
-          📸 Chụp ảnh bằng Máy ảnh Điện thoại
+        <button type="button" id="btn-open-camera" class="btn-primary" style="flex: 1; padding: 14px 16px; font-size: 0.95rem; font-weight: 600; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; border-radius: 12px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">
+          Mở Camera Chụp
+        </button>
+        
+        <input type="file" id="file-input" accept="image/*" style="display: none;">
+        <button type="button" id="btn-open-gallery" class="btn-secondary" style="flex: 1; padding: 14px 16px; font-size: 0.95rem; font-weight: 600; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+          Tải Ảnh Từ Thư Viện
         </button>
       </div>
 
-      <!-- Sample Cards Carousel -->
-      <div class="samples-container">
-        <div class="samples-title">Hoặc chọn ảnh card mẫu thử nghiệm:</div>
-        <div class="samples-grid" id="samples-grid">
-          <!-- Dynamically populated sample thumbs -->
-        </div>
+      <!-- Drop Zone & File Drag-and-Drop Area -->
+      <div class="drop-zone" id="drop-zone" style="padding: 1.25rem 1rem;">
+        <div class="upload-text" style="font-size: 0.9rem;">Kéo & thả ảnh card vào đây (Hỗ trợ JPG, PNG, WEBP)</div>
       </div>
 
       <!-- Preview Canvas Area -->
@@ -70,27 +57,27 @@
           <canvas id="card-canvas"></canvas>
         </div>
         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; text-align: center;">
-          💡 *Mẹo: Bạn có thể kéo 4 điểm màu xanh trên ảnh để căn phẳng góc card trước khi trích xuất.*
+          Mẹo: Bạn có thể kéo 4 điểm màu xanh trên ảnh để căn phẳng góc card trước khi trích xuất.
         </div>
       </div>
 
       <!-- Action Buttons -->
       <div style="margin-top: 1.25rem; display: flex; gap: 10px;">
         <button id="btn-extract" class="btn-primary" style="flex: 2;">
-          ✨ Trích Xuất Dữ Liệu
+          Trích Xuất Dữ Liệu
         </button>
         <button id="btn-reset" class="btn-secondary" style="flex: 1; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 12px; font-weight: 600; cursor: pointer;" title="Xóa toàn bộ dữ liệu & cache">
-          🔄 Reset Form
+          Reset Form
         </button>
       </div>
     </section>
 
-    <!-- RIGHT PANEL: Extracted Form Data & Compare View -->
+    <!-- RIGHT PANEL: Extracted Form Data -->
     <section class="glass-panel">
       <h2 class="panel-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <span>📋 Kết Quả Trích Xuất Dữ Liệu</span>
+        <span>Kết Quả Trích Xuất Dữ Liệu</span>
         <button id="btn-reset-header" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; margin-left: auto;" title="Xóa sạch cache dữ liệu cũ">
-          🧹 Clear Cache
+          Clear Cache
         </button>
       </h2>
 
@@ -98,7 +85,7 @@
       <div id="single-result-panel">
         <div class="field-group">
           <div class="field-label">
-            <span>🏢 Tên Công Ty / Tổ Chức</span>
+            <span>Tên Công Ty / Tổ Chức</span>
             <button class="btn-copy" data-for="field-company">Copy</button>
           </div>
           <div class="field-input-wrapper">
@@ -108,7 +95,7 @@
 
         <div class="field-group">
           <div class="field-label">
-            <span>👤 Họ và Tên Chủ Thẻ</span>
+            <span>Họ và Tên Chủ Thẻ</span>
             <button class="btn-copy" data-for="field-name">Copy</button>
           </div>
           <div class="field-input-wrapper">
@@ -118,7 +105,7 @@
 
         <div class="field-group">
           <div class="field-label">
-            <span>💼 Chức Danh / Chuyên Môn</span>
+            <span>Chức Danh / Chuyên Môn</span>
             <button class="btn-copy" data-for="field-title">Copy</button>
           </div>
           <div class="field-input-wrapper">
@@ -128,7 +115,7 @@
 
         <div class="field-group">
           <div class="field-label">
-            <span>📞 Số Điện Thoại 1 (Chính)</span>
+            <span>Số Điện Thoại 1 (Chính)</span>
             <button class="btn-copy" data-for="field-phone">Copy</button>
           </div>
           <div class="field-input-wrapper">
@@ -138,7 +125,7 @@
 
         <div class="field-group">
           <div class="field-label">
-            <span>📱 Số Điện Thoại 2 (Phụ / Hotline)</span>
+            <span>Số Điện Thoại 2 (Phụ / Hotline)</span>
             <button class="btn-copy" data-for="field-phone2">Copy</button>
           </div>
           <div class="field-input-wrapper">
@@ -148,7 +135,7 @@
 
         <div class="field-group">
           <div class="field-label">
-            <span>✉️ Địa Chỉ Email</span>
+            <span>Địa Chỉ Email</span>
             <button class="btn-copy" data-for="field-email">Copy</button>
           </div>
           <div class="field-input-wrapper">
@@ -158,7 +145,7 @@
 
         <div class="field-group">
           <div class="field-label">
-            <span>🌐 Trang Web Công Ty</span>
+            <span>Trang Web Công Ty</span>
             <button class="btn-copy" data-for="field-website">Copy</button>
           </div>
           <div class="field-input-wrapper">
@@ -168,7 +155,7 @@
 
         <div class="field-group">
           <div class="field-label">
-            <span>📍 Địa Chỉ Văn Phòng</span>
+            <span>Địa Chỉ Văn Phòng</span>
             <button class="btn-copy" data-for="field-address">Copy</button>
           </div>
           <div class="field-input-wrapper">
@@ -178,49 +165,10 @@
 
         <!-- Action Export Buttons -->
         <div class="action-buttons" style="margin-top: 1.25rem;">
-          <button id="btn-sync-gsheet" class="btn-primary" style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); font-size: 1rem; font-weight: 600; padding: 12px 20px; border-radius: 10px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            📊 Lưu sang Google Sheet
+          <button id="btn-sync-gsheet" class="btn-primary" style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); font-size: 1rem; font-weight: 600; padding: 12px 20px; border-radius: 10px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            Lưu sang Google Sheet
           </button>
         </div>
-      </div>
-
-      <!-- COMPARE BOTH ENGINES PANEL -->
-      <div id="compare-result-panel" style="display: none;" class="compare-container">
-        
-        <!-- V1 Result Box -->
-        <div class="compare-card">
-          <div class="compare-header">
-            <span id="v1-engine">Version 1: Cloud AI Vision</span>
-            <span class="badge-v1" id="v1-latency">0 ms</span>
-          </div>
-          <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;">
-            <p><strong>Công ty:</strong> <span id="v1-company">-</span></p>
-            <p><strong>Họ tên:</strong> <span id="v1-name">-</span></p>
-            <p><strong>Chức danh:</strong> <span id="v1-title">-</span></p>
-            <p><strong>SĐT 1:</strong> <span id="v1-phone">-</span></p>
-            <p><strong>SĐT 2:</strong> <span id="v1-phone2">-</span></p>
-            <p><strong>Email:</strong> <span id="v1-email">-</span></p>
-            <p><strong>Website:</strong> <span id="v1-website">-</span></p>
-          </div>
-        </div>
-
-        <!-- V2 Result Box -->
-        <div class="compare-card">
-          <div class="compare-header">
-            <span id="v2-engine">Version 2: Local OCR</span>
-            <span class="badge-v2" id="v2-latency">0 ms</span>
-          </div>
-          <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;">
-            <p><strong>Công ty:</strong> <span id="v2-company">-</span></p>
-            <p><strong>Họ tên:</strong> <span id="v2-name">-</span></p>
-            <p><strong>Chức danh:</strong> <span id="v2-title">-</span></p>
-            <p><strong>SĐT 1:</strong> <span id="v2-phone">-</span></p>
-            <p><strong>SĐT 2:</strong> <span id="v2-phone2">-</span></p>
-            <p><strong>Email:</strong> <span id="v2-email">-</span></p>
-            <p><strong>Website:</strong> <span id="v2-website">-</span></p>
-          </div>
-        </div>
-
       </div>
 
     </section>

@@ -12,6 +12,12 @@ __pycache__/
 *$py.class
 *.so
 
+# Test Data & Reference Research Folders
+Card_test/
+research_ref/
+Tesseract-OCR/
+outputs/
+
 # IDE & Editor Configs
 .idea/
 .vscode/
