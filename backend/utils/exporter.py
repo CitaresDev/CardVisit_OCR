@@ -1,8 +1,14 @@
 import os
 import io
 import csv
-import pandas as pd
-import vobject
+try:
+    import pandas as pd
+except Exception:
+    pd = None
+try:
+    import vobject
+except Exception:
+    vobject = None
 
 def generate_vcard(card_data: dict) -> str:
     """Creates a standard vCard (.vcf) string representation."""
