@@ -39,6 +39,116 @@ document.addEventListener("DOMContentLoaded", async () => {
   let currentCardData = {};
   let scannedCardsHistory = [];
 
+  // Auth DOM Elements
+  const loginGateScreen = document.getElementById("login-gate-screen");
+  const mainAppContainer = document.getElementById("main-app-container");
+  const btnLogout = document.getElementById("btn-logout");
+  const userDisplayName = document.getElementById("user-display-name");
+
+  const tabLogin = document.getElementById("tab-login");
+  const tabRegister = document.getElementById("tab-register");
+  const authForm = document.getElementById("auth-form");
+  const authRegisterFields = document.getElementById("auth-register-fields");
+  const btnAuthSubmit = document.getElementById("btn-auth-submit");
+
+  let isRegisterMode = false;
+  let currentUser = null;
+
+  // Check Current User Auth State (/api/auth/me)
+  const checkAuthState = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = await res.json();
+      if (data.authenticated && data.user) {
+        currentUser = data.user;
+        if (userDisplayName) userDisplayName.innerText = `${currentUser.full_name || currentUser.email || 'Đã đăng nhập'}`;
+        
+        // Unlock Main Application
+        loginGateScreen.style.display = "none";
+        mainAppContainer.style.display = "block";
+      } else {
+        currentUser = null;
+        if (userDisplayName) userDisplayName.innerText = "Chưa đăng nhập";
+
+        // Lock Main Application (Show Login Gate Screen)
+        loginGateScreen.style.display = "flex";
+        mainAppContainer.style.display = "none";
+      }
+    } catch (e) {
+      console.log("Check auth state error:", e);
+      loginGateScreen.style.display = "flex";
+      mainAppContainer.style.display = "none";
+    }
+  };
+
+  await checkAuthState();
+
+  if (btnLogout) {
+    btnLogout.addEventListener("click", async () => {
+      await fetch("/api/auth/logout", { method: "POST" });
+      await checkAuthState();
+      alert("Đã đăng xuất tài khoản!");
+    });
+  }
+
+  tabLogin.addEventListener("click", () => {
+    isRegisterMode = false;
+    tabLogin.style.background = "#3b82f6";
+    tabLogin.style.color = "white";
+    tabRegister.style.background = "transparent";
+    tabRegister.style.color = "#94a3b8";
+    authRegisterFields.style.display = "none";
+    btnAuthSubmit.innerText = "Đăng Nhập Ngay";
+  });
+
+  tabRegister.addEventListener("click", () => {
+    isRegisterMode = true;
+    tabRegister.style.background = "#3b82f6";
+    tabRegister.style.color = "white";
+    tabLogin.style.background = "transparent";
+    tabLogin.style.color = "#94a3b8";
+    authRegisterFields.style.display = "block";
+    btnAuthSubmit.innerText = "Tạo Tài Khoản Mới";
+  });
+
+  authForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("auth-username").value.trim();
+    const password = document.getElementById("auth-password").value.trim();
+
+    const endpoint = isRegisterMode ? "/api/auth/register" : "/api/auth/login";
+    const payload = { username, password };
+
+    if (isRegisterMode) {
+      payload.full_name = document.getElementById("auth-fullname").value.trim();
+      payload.email = document.getElementById("auth-email").value.trim();
+    }
+
+    try {
+      btnAuthSubmit.disabled = true;
+      btnAuthSubmit.innerText = "Đang xử lý...";
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        alert(data.message);
+        await checkAuthState();
+      } else {
+        alert(data.detail || data.message || "Lỗi xác thực");
+      }
+    } catch (err) {
+      alert("Lỗi kết nối server: " + err.message);
+    } finally {
+      btnAuthSubmit.disabled = false;
+      btnAuthSubmit.innerText = isRegisterMode ? "Tạo Tài Khoản Mới" : "Đăng Nhập Ngay";
+    }
+  });
+
   // Cache for last extraction results per engine mode
   let lastExtractionCache = {
     v1: null,

@@ -13,166 +13,222 @@
 </head>
 <body>
 
-  <!-- App Header -->
-  <header class="app-header">
-    <div class="brand-title">
-      <span>Business Card Extractor</span>
-      <span class="brand-badge">Cross-Platform (Web & App)</span>
+  <!-- 🔒 FULL-SCREEN ENFORCED LOGIN GATE (Hiển thị khi chưa đăng nhập) -->
+  <div id="login-gate-screen" style="display: flex; position: fixed; inset: 0; background: #0f172a; z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; width: 100%; max-width: 420px; padding: 32px 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); color: #ffffff; text-align: center;">
+      
+      <div style="font-size: 1.4rem; font-weight: 700; color: #60a5fa; margin-bottom: 4px;">Business Card Extractor</div>
+      <div style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 1.5rem;">Hệ thống Trích xuất Danh thiếp Bảo mật</div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 1.5rem; background: rgba(15, 23, 42, 0.6); padding: 4px; border-radius: 12px;">
+        <button id="tab-login" style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: 600; cursor: pointer;">Đăng Nhập</button>
+        <button id="tab-register" style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent; color: #94a3b8; font-weight: 600; cursor: pointer;">Đăng Ký</button>
+      </div>
+
+      <form id="auth-form" style="text-align: left;">
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px;">Tên đăng nhập (Username)</label>
+          <input type="text" id="auth-username" value="CITARES" placeholder="Tên đăng nhập..." required style="width: 100%; padding: 12px; border-radius: 10px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.2); color: white; font-size: 0.95rem; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+          <label style="display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px;">Mật khẩu (Password)</label>
+          <input type="password" id="auth-password" value="123456" placeholder="Mật khẩu..." required style="width: 100%; padding: 12px; border-radius: 10px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.2); color: white; font-size: 0.95rem; box-sizing: border-box;">
+        </div>
+
+        <div id="auth-register-fields" style="display: none; margin-bottom: 1.25rem;">
+          <div style="margin-bottom: 1rem;">
+            <label style="display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px;">Họ và Tên</label>
+            <input type="text" id="auth-fullname" placeholder="Nguyễn Văn A..." style="width: 100%; padding: 12px; border-radius: 10px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.2); color: white; font-size: 0.95rem; box-sizing: border-box;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px;">Email</label>
+            <input type="email" id="auth-email" placeholder="user@gmail.com..." style="width: 100%; padding: 12px; border-radius: 10px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.2); color: white; font-size: 0.95rem; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <button type="submit" id="btn-auth-submit" class="btn-primary" style="width: 100%; padding: 14px; font-weight: 600; font-size: 1rem; border-radius: 10px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4); cursor: pointer; color: white;">
+          Đăng Nhập Ngay
+        </button>
+      </form>
+
+      <div style="margin-top: 1rem; font-size: 0.75rem; color: #64748b;">
+        Tài khoản mặc định thử nghiệm: <b>CITARES</b> / <b>123456</b>
+      </div>
     </div>
-    <div style="font-size: 0.8rem; color: var(--text-muted);">
-      Trích xuất thông tin Danh thiếp Đa ngôn ngữ (Việt - Anh)
-    </div>
-  </header>
+  </div>
 
-  <!-- Main Responsive Layout -->
-  <main class="main-layout">
-    
-    <!-- LEFT PANEL: Image Upload & Canvas Cropper -->
-    <section class="glass-panel">
-      <h2 class="panel-title">
-        <span>Tải / Chụp Ảnh Card Visit</span>
-      </h2>
-
-      <!-- Dual Action Mobile Buttons -->
-      <div class="mobile-action-bar" style="display: flex; gap: 10px; margin-bottom: 1rem;">
-        <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;">
-        <button type="button" id="btn-open-camera" class="btn-primary" style="flex: 1; padding: 14px 16px; font-size: 0.95rem; font-weight: 600; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; border-radius: 12px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">
-          Mở Camera Chụp
-        </button>
-        
-        <input type="file" id="file-input" accept="image/*" style="display: none;">
-        <button type="button" id="btn-open-gallery" class="btn-secondary" style="flex: 1; padding: 14px 16px; font-size: 0.95rem; font-weight: 600; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-          Tải Ảnh Từ Thư Viện
-        </button>
-      </div>
-
-      <!-- Drop Zone & File Drag-and-Drop Area -->
-      <div class="drop-zone" id="drop-zone" style="padding: 1.25rem 1rem;">
-        <div class="upload-text" style="font-size: 0.9rem;">Kéo & thả ảnh card vào đây (Hỗ trợ JPG, PNG, WEBP)</div>
-      </div>
-
-      <!-- Preview Canvas Area -->
-      <div class="preview-card-area">
-        <div class="canvas-wrapper">
-          <canvas id="card-canvas"></canvas>
+  <!-- 🔓 MAIN PROTECTED APPLICATION CONTAINER (Chỉ mở khi đã đăng nhập thành công) -->
+  <div id="main-app-container" style="display: none;">
+    <!-- App Header -->
+    <header class="app-header" style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div class="brand-title">
+          <span>Business Card Extractor</span>
+          <span class="brand-badge">Cross-Platform (Web & App)</span>
         </div>
-        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; text-align: center;">
-          Mẹo: Bạn có thể kéo 4 điểm màu xanh trên ảnh để căn phẳng góc card trước khi trích xuất.
+        <div style="font-size: 0.8rem; color: var(--text-muted);">
+          Trích xuất thông tin Danh thiếp Đa ngôn ngữ (Việt - Anh)
         </div>
       </div>
 
-      <!-- Action Buttons -->
-      <div style="margin-top: 1.25rem; display: flex; gap: 10px;">
-        <button id="btn-extract" class="btn-primary" style="flex: 2;">
-          Trích Xuất Dữ Liệu
-        </button>
-        <button id="btn-reset" class="btn-secondary" style="flex: 1; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 12px; font-weight: 600; cursor: pointer;" title="Xóa toàn bộ dữ liệu & cache">
-          Reset Form
-        </button>
+      <!-- Auth User Bar -->
+      <div id="auth-user-bar" style="display: flex; align-items: center; gap: 12px;">
+        <span id="user-display-name" style="font-size: 0.85rem; color: #60a5fa; font-weight: 600;">Chưa đăng nhập</span>
+        <button id="btn-logout" class="btn-secondary" style="padding: 8px 14px; font-size: 0.8rem; border-radius: 8px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; cursor: pointer; font-weight: 600;">Đăng Xuất</button>
       </div>
-    </section>
+    </header>
 
-    <!-- RIGHT PANEL: Extracted Form Data -->
-    <section class="glass-panel">
-      <h2 class="panel-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <span>Kết Quả Trích Xuất Dữ Liệu</span>
-        <button id="btn-reset-header" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; margin-left: auto;" title="Xóa sạch cache dữ liệu cũ">
-          Clear Cache
-        </button>
-      </h2>
+    <!-- Main Responsive Layout -->
+    <main class="main-layout">
+      
+      <!-- LEFT PANEL: Image Upload & Canvas Cropper -->
+      <section class="glass-panel">
+        <h2 class="panel-title">
+          <span>Tải / Chụp Ảnh Card Visit</span>
+        </h2>
 
-      <!-- SINGLE FORM RESULT PANEL -->
-      <div id="single-result-panel">
-        <div class="field-group">
-          <div class="field-label">
-            <span>Tên Công Ty / Tổ Chức</span>
-            <button class="btn-copy" data-for="field-company">Copy</button>
-          </div>
-          <div class="field-input-wrapper">
-            <input type="text" id="field-company" class="field-input" placeholder="Tên công ty...">
-          </div>
-        </div>
-
-        <div class="field-group">
-          <div class="field-label">
-            <span>Họ và Tên Chủ Thẻ</span>
-            <button class="btn-copy" data-for="field-name">Copy</button>
-          </div>
-          <div class="field-input-wrapper">
-            <input type="text" id="field-name" class="field-input" placeholder="Họ tên cá nhân...">
-          </div>
-        </div>
-
-        <div class="field-group">
-          <div class="field-label">
-            <span>Chức Danh / Chuyên Môn</span>
-            <button class="btn-copy" data-for="field-title">Copy</button>
-          </div>
-          <div class="field-input-wrapper">
-            <input type="text" id="field-title" class="field-input" placeholder="Chức danh công việc...">
-          </div>
-        </div>
-
-        <div class="field-group">
-          <div class="field-label">
-            <span>Số Điện Thoại 1 (Chính)</span>
-            <button class="btn-copy" data-for="field-phone">Copy</button>
-          </div>
-          <div class="field-input-wrapper">
-            <input type="text" id="field-phone" class="field-input" placeholder="Số điện thoại chính...">
-          </div>
-        </div>
-
-        <div class="field-group">
-          <div class="field-label">
-            <span>Số Điện Thoại 2 (Phụ / Hotline)</span>
-            <button class="btn-copy" data-for="field-phone2">Copy</button>
-          </div>
-          <div class="field-input-wrapper">
-            <input type="text" id="field-phone2" class="field-input" placeholder="Số điện thoại thứ 2 (nếu có)...">
-          </div>
-        </div>
-
-        <div class="field-group">
-          <div class="field-label">
-            <span>Địa Chỉ Email</span>
-            <button class="btn-copy" data-for="field-email">Copy</button>
-          </div>
-          <div class="field-input-wrapper">
-            <input type="text" id="field-email" class="field-input" placeholder="Email liên hệ...">
-          </div>
-        </div>
-
-        <div class="field-group">
-          <div class="field-label">
-            <span>Trang Web Công Ty</span>
-            <button class="btn-copy" data-for="field-website">Copy</button>
-          </div>
-          <div class="field-input-wrapper">
-            <input type="text" id="field-website" class="field-input" placeholder="Website...">
-          </div>
-        </div>
-
-        <div class="field-group">
-          <div class="field-label">
-            <span>Địa Chỉ Văn Phòng</span>
-            <button class="btn-copy" data-for="field-address">Copy</button>
-          </div>
-          <div class="field-input-wrapper">
-            <input type="text" id="field-address" class="field-input" placeholder="Địa chỉ...">
-          </div>
-        </div>
-
-        <!-- Action Export Buttons -->
-        <div class="action-buttons" style="margin-top: 1.25rem;">
-          <button id="btn-sync-gsheet" class="btn-primary" style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); font-size: 1rem; font-weight: 600; padding: 12px 20px; border-radius: 10px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-            Lưu sang Google Sheet
+        <!-- Dual Action Mobile Buttons -->
+        <div class="mobile-action-bar" style="display: flex; gap: 10px; margin-bottom: 1rem;">
+          <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;">
+          <button type="button" id="btn-open-camera" class="btn-primary" style="flex: 1; padding: 14px 16px; font-size: 0.95rem; font-weight: 600; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; border-radius: 12px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">
+            Mở Camera Chụp
+          </button>
+          
+          <input type="file" id="file-input" accept="image/*" style="display: none;">
+          <button type="button" id="btn-open-gallery" class="btn-secondary" style="flex: 1; padding: 14px 16px; font-size: 0.95rem; font-weight: 600; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            Tải Ảnh Từ Thư Viện
           </button>
         </div>
-      </div>
 
-    </section>
-  </main>
+        <!-- Drop Zone & File Drag-and-Drop Area -->
+        <div class="drop-zone" id="drop-zone" style="padding: 1.25rem 1rem;">
+          <div class="upload-text" style="font-size: 0.9rem;">Kéo & thả ảnh card vào đây (Hỗ trợ JPG, PNG, WEBP)</div>
+        </div>
+
+        <!-- Preview Canvas Area -->
+        <div class="preview-card-area">
+          <div class="canvas-wrapper">
+            <canvas id="card-canvas"></canvas>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; text-align: center;">
+            Mẹo: Bạn có thể kéo 4 điểm màu xanh trên ảnh để căn phẳng góc card trước khi trích xuất.
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="margin-top: 1.25rem; display: flex; gap: 10px;">
+          <button id="btn-extract" class="btn-primary" style="flex: 2;">
+            Trích Xuất Dữ Liệu
+          </button>
+          <button id="btn-reset" class="btn-secondary" style="flex: 1; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 12px; font-weight: 600; cursor: pointer;" title="Xóa toàn bộ dữ liệu & cache">
+            Reset Form
+          </button>
+        </div>
+      </section>
+
+      <!-- RIGHT PANEL: Extracted Form Data -->
+      <section class="glass-panel">
+        <h2 class="panel-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span>Kết Quả Trích Xuất Dữ Liệu</span>
+          <button id="btn-reset-header" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; margin-left: auto;" title="Xóa sạch cache dữ liệu cũ">
+            Clear Cache
+          </button>
+        </h2>
+
+        <!-- SINGLE FORM RESULT PANEL -->
+        <div id="single-result-panel">
+          <div class="field-group">
+            <div class="field-label">
+              <span>Tên Công Ty / Tổ Chức</span>
+              <button class="btn-copy" data-for="field-company">Copy</button>
+            </div>
+            <div class="field-input-wrapper">
+              <input type="text" id="field-company" class="field-input" placeholder="Tên công ty...">
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">
+              <span>Họ và Tên Chủ Thẻ</span>
+              <button class="btn-copy" data-for="field-name">Copy</button>
+            </div>
+            <div class="field-input-wrapper">
+              <input type="text" id="field-name" class="field-input" placeholder="Họ tên cá nhân...">
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">
+              <span>Chức Danh / Chuyên Môn</span>
+              <button class="btn-copy" data-for="field-title">Copy</button>
+            </div>
+            <div class="field-input-wrapper">
+              <input type="text" id="field-title" class="field-input" placeholder="Chức danh công việc...">
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">
+              <span>Số Điện Thoại 1 (Chính)</span>
+              <button class="btn-copy" data-for="field-phone">Copy</button>
+            </div>
+            <div class="field-input-wrapper">
+              <input type="text" id="field-phone" class="field-input" placeholder="Số điện thoại chính...">
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">
+              <span>Số Điện Thoại 2 (Phụ / Hotline)</span>
+              <button class="btn-copy" data-for="field-phone2">Copy</button>
+            </div>
+            <div class="field-input-wrapper">
+              <input type="text" id="field-phone2" class="field-input" placeholder="Số điện thoại thứ 2 (nếu có)...">
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">
+              <span>Địa Chỉ Email</span>
+              <button class="btn-copy" data-for="field-email">Copy</button>
+            </div>
+            <div class="field-input-wrapper">
+              <input type="text" id="field-email" class="field-input" placeholder="Email liên hệ...">
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">
+              <span>Trang Web Công Ty</span>
+              <button class="btn-copy" data-for="field-website">Copy</button>
+            </div>
+            <div class="field-input-wrapper">
+              <input type="text" id="field-website" class="field-input" placeholder="Website...">
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">
+              <span>Địa Chỉ Văn Phòng</span>
+              <button class="btn-copy" data-for="field-address">Copy</button>
+            </div>
+            <div class="field-input-wrapper">
+              <input type="text" id="field-address" class="field-input" placeholder="Địa chỉ...">
+            </div>
+          </div>
+
+          <!-- Action Export Buttons -->
+          <div class="action-buttons" style="margin-top: 1.25rem;">
+            <button id="btn-sync-gsheet" class="btn-primary" style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); font-size: 1rem; font-weight: 600; padding: 12px 20px; border-radius: 10px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+              Lưu sang Google Sheet
+            </button>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
 
   <script src="/static/js/api_client.js"></script>
   <script src="/static/js/canvas_cropper.js"></script>

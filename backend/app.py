@@ -180,24 +180,171 @@ async def export_csv_endpoint(card_list: list):
         headers={"Content-Disposition": "attachment; filename=scanned_cards.csv"}
     )
 
+# --------------------------------------------------------------------------
+# INTERNATIONAL STANDARD AUTHENTICATION ENDPOINTS (JWT + HttpOnly Cookie)
+# --------------------------------------------------------------------------
+from fastapi import Cookie
+
+@app.post("/api/auth/login")
+async def login_endpoint(payload: dict, response: Response):
+    username = payload.get("username", "").strip()
+    password = payload.get("password", "").strip()
+
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Vui lòng nhập đầy đủ Username và Mật khẩu.")
+
+    from backend.database.db_manager import SessionLocal, hash_username, verify_password, create_jwt_token
+    from backend.database.models import UserCredential, UserProfile
+
+    db = SessionLocal()
+    try:
+        u_hash = hash_username(username)
+        cred = db.query(UserCredential).filter(UserCredential.username_hash == u_hash).first()
+        if not cred or not verify_password(password, cred.password_hash):
+            raise HTTPException(status_code=401, detail="Tên đăng nhập hoặc mật khẩu không chính xác.")
+
+        # Get profile
+        profile = db.query(UserProfile).filter(UserProfile.account_token == cred.account_token).first()
+        token = create_jwt_token(cred.account_token)
+
+        # Set Secure HttpOnly Cookie (Prevents XSS stealing!)
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            samesite="lax",
+            max_age=86400 * 7,
+            secure=False  # Set True when deploying HTTPS
+        )
+
+        return {
+            "success": True,
+            "message": "Đăng nhập thành công!",
+            "user": {
+                "account_token": cred.account_token,
+                "full_name": profile.full_name if profile else username,
+                "email": profile.email if profile else "",
+                "role": profile.role if profile else "user"
+            }
+        }
+    finally:
+        db.close()
+
+@app.post("/api/auth/register")
+async def register_endpoint(payload: dict, response: Response):
+    username = payload.get("username", "").strip()
+    password = payload.get("password", "").strip()
+    full_name = payload.get("full_name", username).strip()
+    email = payload.get("email", "").strip()
+
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Username và Mật khẩu không được để trống.")
+
+    from backend.database.db_manager import SessionLocal, hash_username, hash_password, create_jwt_token
+    from backend.database.models import UserCredential, UserProfile
+
+    db = SessionLocal()
+    try:
+        u_hash = hash_username(username)
+        existing = db.query(UserCredential).filter(UserCredential.username_hash == u_hash).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Tên đăng nhập này đã tồn tại.")
+
+        p_hash = hash_password(password)
+        cred = UserCredential(username_hash=u_hash, password_hash=p_hash)
+        db.add(cred)
+        db.commit()
+        db.refresh(cred)
+
+        profile = UserProfile(
+            account_token=cred.account_token,
+            full_name=full_name,
+            email=email,
+            role="user"
+        )
+        db.add(profile)
+        db.commit()
+
+        token = create_jwt_token(cred.account_token)
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            samesite="lax",
+            max_age=86400 * 7,
+            secure=False
+        )
+
+        return {
+            "success": True,
+            "message": "Đăng ký tài khoản mới thành công!",
+            "user": {
+                "account_token": cred.account_token,
+                "full_name": full_name,
+                "email": email,
+                "role": "user"
+            }
+        }
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
+
+@app.get("/api/auth/me")
+async def get_current_user_endpoint(access_token: str = Cookie(None)):
+    if not access_token:
+        return {"authenticated": False}
+
+    from backend.database.db_manager import decode_jwt_token, SessionLocal
+    from backend.database.models import UserProfile
+
+    account_token = decode_jwt_token(access_token)
+    if not account_token:
+        return {"authenticated": False}
+
+    db = SessionLocal()
+    try:
+        profile = db.query(UserProfile).filter(UserProfile.account_token == account_token).first()
+        if not profile:
+            return {"authenticated": False}
+        return {
+            "authenticated": True,
+            "user": {
+                "account_token": profile.account_token,
+                "full_name": profile.full_name,
+                "email": profile.email,
+                "role": profile.role
+            }
+        }
+    finally:
+        db.close()
+
+@app.post("/api/auth/logout")
+async def logout_endpoint(response: Response):
+    response.delete_cookie("access_token")
+    return {"success": True, "message": "Đã đăng xuất an toàn!"}
+
 @app.post("/api/save-database")
-async def save_database_endpoint(payload: dict):
+async def save_database_endpoint(payload: dict, access_token: str = Cookie(None)):
     card_data = payload.get("card_data") or payload
-    owner_token = payload.get("owner_token", "anon_user")
-    from backend.database.db_manager import save_card_to_database
+    from backend.database.db_manager import decode_jwt_token, save_card_to_database
+    owner_token = decode_jwt_token(access_token) if access_token else "anon_user"
+    
     success = save_card_to_database(card_data, owner_token=owner_token)
     if success:
         return {"success": True, "message": "Đã lưu thành công vĩnh viễn vào CSDL (Database)!"}
     raise HTTPException(status_code=500, detail="Không thể lưu vào Cơ sở dữ liệu.")
 
 @app.post("/api/save-google-sheet")
-async def save_google_sheet_endpoint(payload: dict):
+async def save_google_sheet_endpoint(payload: dict, access_token: str = Cookie(None)):
     webhook_url = os.getenv("GOOGLE_SHEET_WEBHOOK_URL", "").strip()
     card_data = payload.get("card_data") or payload
-    owner_token = payload.get("owner_token", "anon_user")
+
+    from backend.database.db_manager import decode_jwt_token, save_card_to_database
+    owner_token = decode_jwt_token(access_token) if access_token else "anon_user"
 
     # 1. Parallel Auto Backup to Database (Table 3: card_records)
-    from backend.database.db_manager import save_card_to_database
     save_card_to_database(card_data, owner_token=owner_token)
 
     if not webhook_url:

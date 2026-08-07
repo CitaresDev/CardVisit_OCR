@@ -1,12 +1,16 @@
 import os
 import hashlib
 import bcrypt
+import jwt
+from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.database.models import Base, UserCredential, UserProfile, CardRecord
 
 # Environment DB URL (PostgreSQL on Vercel/Cloud, SQLite local fallback)
 DATABASE_URL = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
+JWT_SECRET = os.getenv("JWT_SECRET_KEY", "citares_secure_jwt_secret_key_2026_pro")
+JWT_ALGORITHM = "HS256"
 
 if not DATABASE_URL:
     # Local SQLite Fallback
@@ -24,20 +28,7 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Auto-create tables
-def init_db():
-    Base.metadata.create_all(bind=engine)
-
-init_db()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Helper cryptographic hash functions
+# Helper cryptographic hash & JWT functions
 def hash_username(username: str) -> str:
     return hashlib.sha256(username.strip().lower().encode("utf-8")).hexdigest()
 
@@ -47,6 +38,63 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+
+def create_jwt_token(account_token: str) -> str:
+    payload = {
+        "sub": account_token,
+        "exp": datetime.utcnow() + timedelta(days=7),
+        "iat": datetime.utcnow()
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def decode_jwt_token(token: str) -> str | None:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload.get("sub")
+    except Exception:
+        return None
+
+def seed_default_user():
+    db = SessionLocal()
+    try:
+        u_hash = hash_username("CITARES")
+        existing = db.query(UserCredential).filter(UserCredential.username_hash == u_hash).first()
+        if not existing:
+            # Create Seed Account: CITARES / 123456
+            p_hash = hash_password("123456")
+            cred = UserCredential(username_hash=u_hash, password_hash=p_hash)
+            db.add(cred)
+            db.commit()
+            db.refresh(cred)
+
+            prof = UserProfile(
+                account_token=cred.account_token,
+                full_name="CITARES Admin",
+                email="admin@citares.edu.vn",
+                role="admin"
+            )
+            db.add(prof)
+            db.commit()
+            print("[DB Seed]: Default account CITARES / 123456 created successfully!")
+    except Exception as e:
+        print(f"[DB Seed Error]: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+# Auto-create tables & seed default CITARES user
+def init_db():
+    Base.metadata.create_all(bind=engine)
+    seed_default_user()
+
+init_db()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 def save_card_to_database(card_data: dict, owner_token: str = "anon_user") -> bool:
     """
