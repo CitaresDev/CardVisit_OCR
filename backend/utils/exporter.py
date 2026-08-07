@@ -70,7 +70,8 @@ def generate_vcard(card_data: dict) -> str:
 
 def generate_excel(card_data_list: list) -> bytes:
     """Generates Excel file bytes for export."""
-    df = pd.DataFrame(card_data_list)
+    sanitized = sanitize_card_data(card_data_list)
+    df = pd.DataFrame(sanitized)
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False)
