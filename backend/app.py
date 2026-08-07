@@ -219,12 +219,17 @@ async def export_csv_endpoint(card_list: list):
 # INTERNATIONAL STANDARD AUTHENTICATION ENDPOINTS (JWT Cookie + Bearer Token)
 # --------------------------------------------------------------------------
 def extract_token_from_request(request: Request, access_token_cookie: str = None) -> str | None:
-    if access_token_cookie:
-        return access_token_cookie
+    from backend.database.db_manager import decode_jwt_token
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
+        tok = auth_header.split(" ", 1)[1].strip()
+        if decode_jwt_token(tok):
+            return tok
+    if access_token_cookie and decode_jwt_token(access_token_cookie):
+        return access_token_cookie
+    if auth_header and auth_header.startswith("Bearer "):
         return auth_header.split(" ", 1)[1].strip()
-    return None
+    return access_token_cookie
 
 @app.post("/api/auth/login")
 async def login_endpoint(payload: dict, response: Response, request: Request):

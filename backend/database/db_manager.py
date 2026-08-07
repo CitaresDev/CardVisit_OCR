@@ -66,6 +66,12 @@ def decode_jwt_token(token: str) -> str | None:
         return None
 
 def seed_default_user():
+    try:
+        # Guarantee tables exist on PostgreSQL / SQLite
+        Base.metadata.create_all(bind=engine)
+    except Exception as table_err:
+        print(f"[DB Init Error]: {table_err}")
+
     db = SessionLocal()
     try:
         u_hash = hash_username("CITARES")
@@ -95,7 +101,6 @@ def seed_default_user():
 
 # Auto-create tables & seed default CITARES user
 def init_db():
-    Base.metadata.create_all(bind=engine)
     seed_default_user()
 
 init_db()
