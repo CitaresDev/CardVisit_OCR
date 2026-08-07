@@ -13,10 +13,14 @@ JWT_SECRET = os.getenv("JWT_SECRET_KEY", "citares_secure_jwt_secret_key_2026_pro
 JWT_ALGORITHM = "HS256"
 
 if not DATABASE_URL:
-    # Local SQLite Fallback
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    DB_PATH = os.path.join(BASE_DIR, "database", "card_visit.db")
-    DATABASE_URL = f"sqlite:///{DB_PATH}"
+    if os.getenv("VERCEL") or os.getenv("VERCEL_ENV"):
+        # Temporary /tmp SQLite DB for Vercel if Vercel Postgres is not connected yet
+        DATABASE_URL = "sqlite:////tmp/card_visit.db"
+    else:
+        # Local SQLite Fallback
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        DB_PATH = os.path.join(BASE_DIR, "database", "card_visit.db")
+        DATABASE_URL = f"sqlite:///{DB_PATH}"
 elif DATABASE_URL.startswith("postgres://"):
     # Fix for Vercel/Heroku legacy postgres:// scheme
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
