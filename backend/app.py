@@ -331,10 +331,26 @@ async def logout_endpoint(response: Response):
 @app.post("/api/save-database")
 async def save_database_endpoint(payload: dict, access_token: str = Cookie(None)):
     card_data = payload.get("card_data") or payload
-    from backend.database.db_manager import decode_jwt_token, save_card_to_database
-    owner_token = decode_jwt_token(access_token) if access_token else "anon_user"
-    
-    success = save_card_to_database(card_data, owner_token=owner_token)
+    from backend.database.db_manager import decode_jwt_token, save_card_to_database, SessionLocal
+    from backend.database.models import UserProfile
+
+    owner_token = "anon_user"
+    scanned_by = card_data.get("scanned_by", "")
+
+    if access_token:
+        acc_tok = decode_jwt_token(access_token)
+        if acc_tok:
+            owner_token = acc_tok
+            db = SessionLocal()
+            try:
+                prof = db.query(UserProfile).filter(UserProfile.account_token == acc_tok).first()
+                if prof:
+                    scanned_by = prof.full_name or prof.email
+            finally:
+                db.close()
+
+    card_data["scanned_by"] = scanned_by
+    success = save_card_to_database(card_data, owner_token=owner_token, scanned_by=scanned_by)
     if success:
         return {"success": True, "message": "Đã lưu thành công vĩnh viễn vào CSDL (Database)!"}
     raise HTTPException(status_code=500, detail="Không thể lưu vào Cơ sở dữ liệu.")
@@ -344,11 +360,28 @@ async def save_google_sheet_endpoint(payload: dict, access_token: str = Cookie(N
     webhook_url = os.getenv("GOOGLE_SHEET_WEBHOOK_URL", "").strip()
     card_data = payload.get("card_data") or payload
 
-    from backend.database.db_manager import decode_jwt_token, save_card_to_database
-    owner_token = decode_jwt_token(access_token) if access_token else "anon_user"
+    from backend.database.db_manager import decode_jwt_token, save_card_to_database, SessionLocal
+    from backend.database.models import UserProfile
+
+    owner_token = "anon_user"
+    scanned_by = card_data.get("scanned_by", "")
+
+    if access_token:
+        acc_tok = decode_jwt_token(access_token)
+        if acc_tok:
+            owner_token = acc_tok
+            db = SessionLocal()
+            try:
+                prof = db.query(UserProfile).filter(UserProfile.account_token == acc_tok).first()
+                if prof:
+                    scanned_by = prof.full_name or prof.email
+            finally:
+                db.close()
+
+    card_data["scanned_by"] = scanned_by
 
     # 1. Parallel Auto Backup to Database (Table 3: card_records)
-    save_card_to_database(card_data, owner_token=owner_token)
+    save_card_to_database(card_data, owner_token=owner_token, scanned_by=scanned_by)
 
     if not webhook_url:
         return {"success": True, "message": "Đã lưu bản sao vĩnh viễn vào CSDL! (Cần cấu hình thêm GOOGLE_SHEET_WEBHOOK_URL để đồng bộ sang Google Sheet)"}

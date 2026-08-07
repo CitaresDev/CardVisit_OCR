@@ -96,7 +96,7 @@ def get_db():
     finally:
         db.close()
 
-def save_card_to_database(card_data: dict, owner_token: str = "anon_user") -> bool:
+def save_card_to_database(card_data: dict, owner_token: str = "anon_user", scanned_by: str = "") -> bool:
     """
     Saves card data to Table 3 (card_records) in parallel with Google Sheets.
     """
@@ -112,7 +112,8 @@ def save_card_to_database(card_data: dict, owner_token: str = "anon_user") -> bo
             email=card_data.get("email", ""),
             website=card_data.get("website", ""),
             address=card_data.get("address", ""),
-            tax_code=card_data.get("tax_code", "")
+            tax_code=card_data.get("tax_code", ""),
+            scanned_by=scanned_by or card_data.get("scanned_by", "")
         )
         db.add(record)
         db.commit()

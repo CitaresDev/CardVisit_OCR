@@ -473,7 +473,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       phone_2: inputPhone2 ? inputPhone2.value : "",
       email: inputEmail.value,
       website: inputWebsite.value,
-      address: inputAddress.value
+      address: inputAddress.value,
+      scanned_by: currentUser ? (currentUser.full_name || currentUser.email) : ""
     };
 
     if (!cardToExport.full_name && !cardToExport.company_name) {
