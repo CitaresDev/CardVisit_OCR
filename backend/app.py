@@ -96,6 +96,48 @@ async def serve_sw():
         return FileResponse(sw_path, media_type="application/javascript")
     raise HTTPException(status_code=404, detail="Service worker not found")
 
+@app.get("/api/debug-auth")
+async def debug_auth_endpoint():
+    from backend.database.db_manager import SessionLocal, hash_username, verify_password, seed_default_user, DATABASE_URL
+    from backend.database.models import UserCredential, UserProfile
+
+    # Ensure tables and seed user exist
+    seed_default_user()
+
+    db = SessionLocal()
+    try:
+        u_hash = hash_username("CITARES")
+        cred = db.query(UserCredential).filter(UserCredential.username_hash == u_hash).first()
+        if not cred:
+            return {
+                "status": "error",
+                "message": "Không tìm thấy tài khoản CITARES trong CSDL!",
+                "db_url_type": "postgres" if "postgres" in DATABASE_URL else "sqlite"
+            }
+
+        is_pw_valid = verify_password("123456", cred.password_hash)
+        profile = db.query(UserProfile).filter(UserProfile.account_token == cred.account_token).first()
+
+        return {
+            "status": "ok",
+            "message": "Tài khoản CITARES đã sẵn sàng!",
+            "password_valid": is_pw_valid,
+            "db_type": "postgres" if "postgres" in DATABASE_URL else "sqlite",
+            "profile": {
+                "full_name": profile.full_name if profile else "",
+                "email": profile.email if profile else "",
+                "role": profile.role if profile else ""
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "exception",
+            "error": str(e),
+            "db_url_type": "postgres" if "postgres" in DATABASE_URL else "sqlite"
+        }
+    finally:
+        db.close()
+
 @app.get("/manifest.json")
 async def serve_manifest():
     manifest_path = os.path.join(FRONTEND_DIR, "manifest.json")

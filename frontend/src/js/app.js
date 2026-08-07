@@ -100,7 +100,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     return headers;
   };
 
-  const checkAuthState = async () => {
+  const checkAuthState = async (loggedInUser = null) => {
+    if (loggedInUser) {
+      currentUser = loggedInUser;
+      if (userDisplayName) userDisplayName.innerText = `${currentUser.full_name || currentUser.email || 'Đã đăng nhập'}`;
+      if (btnAdminOpenModal) {
+        btnAdminOpenModal.style.display = (currentUser.role === 'admin') ? "inline-block" : "none";
+      }
+      loginGateScreen.style.display = "none";
+      mainAppContainer.style.display = "block";
+      loadCardHistory();
+      return;
+    }
+
     try {
       const res = await fetch("/api/auth/me", {
         headers: getAuthHeaders()
@@ -216,7 +228,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           localStorage.setItem("auth_token", data.token);
         }
         alert(data.message);
-        await checkAuthState();
+        await checkAuthState(data.user);
       } else {
         alert(data.detail || data.message || "Tên đăng nhập hoặc mật khẩu không đúng");
       }
