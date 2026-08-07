@@ -552,20 +552,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const getCardsToExport = () => {
+    const cardToExport = {
+      company_name: inputCompany.value,
+      full_name: inputName.value,
+      job_title: inputTitle.value,
+      phone: inputPhone.value,
+      phone_2: inputPhone2 ? inputPhone2.value : "",
+      email: inputEmail.value,
+      website: inputWebsite.value,
+      address: inputAddress.value,
+      scanned_by: currentUser ? (currentUser.full_name || currentUser.email || "CITARES Admin") : "CITARES Admin"
+    };
+
     if (scannedCardsHistory.length === 0) {
-      const cardToExport = {
-        company_name: inputCompany.value,
-        full_name: inputName.value,
-        job_title: inputTitle.value,
-        phone: inputPhone.value,
-        phone_2: inputPhone2 ? inputPhone2.value : "",
-        email: inputEmail.value,
-        website: inputWebsite.value,
-        address: inputAddress.value
-      };
       if (cardToExport.full_name || cardToExport.company_name) {
         scannedCardsHistory.push(cardToExport);
       }
+    } else {
+      // Ensure all history cards have scanned_by populated
+      scannedCardsHistory.forEach(c => {
+        if (!c.scanned_by) {
+          c.scanned_by = currentUser ? (currentUser.full_name || currentUser.email || "CITARES Admin") : "CITARES Admin";
+        }
+      });
     }
     return scannedCardsHistory;
   };
@@ -580,7 +589,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       email: inputEmail.value,
       website: inputWebsite.value,
       address: inputAddress.value,
-      scanned_by: currentUser ? (currentUser.full_name || currentUser.email) : ""
+      scanned_by: currentUser ? (currentUser.full_name || currentUser.email || "CITARES Admin") : "CITARES Admin"
     };
 
     if (!cardToExport.full_name && !cardToExport.company_name) {

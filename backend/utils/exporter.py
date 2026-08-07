@@ -68,10 +68,24 @@ def generate_vcard(card_data: dict) -> str:
 
     return j.serialize()
 
+COLUMN_MAPPING = {
+    "company_name": "Tên công ty / Tổ chức",
+    "full_name": "Họ và tên chủ thẻ",
+    "job_title": "Chức danh / Chuyên môn",
+    "phone": "Số điện thoại 1",
+    "phone_2": "Số điện thoại 2",
+    "email": "Email",
+    "website": "Website",
+    "address": "Địa chỉ văn phòng",
+    "scanned_by": "Người quét",
+    "created_at": "Thời gian quét"
+}
+
 def generate_excel(card_data_list: list) -> bytes:
     """Generates Excel file bytes for export."""
     sanitized = sanitize_card_data(card_data_list)
     df = pd.DataFrame(sanitized)
+    df.rename(columns=COLUMN_MAPPING, inplace=True)
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False)
@@ -81,6 +95,7 @@ def generate_csv(card_data_list: list) -> bytes:
     """Generates CSV file bytes for export."""
     sanitized = sanitize_card_data(card_data_list)
     df = pd.DataFrame(sanitized)
+    df.rename(columns=COLUMN_MAPPING, inplace=True)
     output = io.StringIO()
     df.to_csv(output, index=False, encoding='utf-8-sig')
     return output.getvalue().encode("utf-8-sig")
