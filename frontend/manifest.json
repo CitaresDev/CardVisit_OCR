@@ -1,0 +1,17 @@
+{
+  "name": "Card Visit Reader & Extractor",
+  "short_name": "Card Visit Reader",
+  "description": "Công cụ trích xuất thông tin Card Visit đa nền tảng (Desktop, Mobile Web & Android App)",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/color/512/id-card.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

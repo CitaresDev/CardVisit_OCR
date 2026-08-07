@@ -1,0 +1,13 @@
+fastapi>=0.110.0
+uvicorn>=0.30.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+pillow>=10.0.0
+requests>=2.30.0
+pytesseract>=0.3.10
+pandas>=2.0.0
+openpyxl>=3.1.0
+vobject>=0.9.6
+python-dotenv>=1.0.0
+python-multipart>=0.0.9
+google-genai>=0.1.0

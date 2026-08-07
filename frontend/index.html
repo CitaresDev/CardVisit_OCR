@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Card Visit Reader & Extractor (Desktop, Mobile & Android App)</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-title">
+      <span>🎴 Business Card Extractor</span>
+      <span class="brand-badge">Cross-Platform (Web & App)</span>
+    </div>
+    <div style="font-size: 0.8rem; color: var(--text-muted);">
+      Trích xuất thông tin Danh thiếp Đa ngôn ngữ (Việt - Anh)
+    </div>
+  </header>
+
+  <!-- Main Responsive Layout -->
+  <main class="main-layout">
+    
+    <!-- LEFT PANEL: Image Upload & Canvas Cropper -->
+    <section class="glass-panel">
+      <h2 class="panel-title">
+        <span>📷 Tải / Chụp Ảnh Card Visit</span>
+      </h2>
+
+      <!-- Engine Selector -->
+      <div class="engine-toggle-group">
+        <button class="engine-btn active" data-engine="v1">✨ Version 1: Cloud AI Vision</button>
+        <button class="engine-btn" data-engine="v2">💻 Version 2: Local OCR</button>
+        <button class="engine-btn" data-engine="compare">⚡ Compare Both</button>
+      </div>
+
+
+
+      <!-- Drop Zone & File Upload -->
+      <div class="drop-zone" id="drop-zone">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">Kéo & thả tệp ảnh card vào đây, hoặc <span style="color: var(--accent-blue); text-decoration: underline;">Chọn tệp</span></div>
+        <div class="upload-subtext">Hỗ trợ JPG, PNG, WEBP (Tối đa 10MB)</div>
+        <input type="file" id="file-input" accept="image/*" style="display: none;">
+        
+        <!-- Mobile Camera Input -->
+        <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;">
+        <button type="button" class="btn-camera-mobile" id="btn-camera-mobile">
+          📸 Chụp ảnh bằng Máy ảnh Điện thoại
+        </button>
+      </div>
+
+      <!-- Sample Cards Carousel -->
+      <div class="samples-container">
+        <div class="samples-title">Hoặc chọn ảnh card mẫu thử nghiệm:</div>
+        <div class="samples-grid" id="samples-grid">
+          <!-- Dynamically populated sample thumbs -->
+        </div>
+      </div>
+
+      <!-- Preview Canvas Area -->
+      <div class="preview-card-area">
+        <div class="canvas-wrapper">
+          <canvas id="card-canvas"></canvas>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; text-align: center;">
+          💡 *Mẹo: Bạn có thể kéo 4 điểm màu xanh trên ảnh để căn phẳng góc card trước khi trích xuất.*
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="margin-top: 1.25rem; display: flex; gap: 10px;">
+        <button id="btn-extract" class="btn-primary" style="flex: 2;">
+          ✨ Trích Xuất Dữ Liệu
+        </button>
+        <button id="btn-reset" class="btn-secondary" style="flex: 1; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 12px; font-weight: 600; cursor: pointer;" title="Xóa toàn bộ dữ liệu & cache">
+          🔄 Reset Form
+        </button>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: Extracted Form Data & Compare View -->
+    <section class="glass-panel">
+      <h2 class="panel-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <span>📋 Kết Quả Trích Xuất Dữ Liệu</span>
+        <button id="btn-reset-header" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; margin-left: auto;" title="Xóa sạch cache dữ liệu cũ">
+          🧹 Clear Cache
+        </button>
+      </h2>
+
+      <!-- SINGLE FORM RESULT PANEL -->
+      <div id="single-result-panel">
+        <div class="field-group">
+          <div class="field-label">
+            <span>🏢 Tên Công Ty / Tổ Chức</span>
+            <button class="btn-copy" data-for="field-company">Copy</button>
+          </div>
+          <div class="field-input-wrapper">
+            <input type="text" id="field-company" class="field-input" placeholder="Tên công ty...">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">
+            <span>👤 Họ và Tên Chủ Thẻ</span>
+            <button class="btn-copy" data-for="field-name">Copy</button>
+          </div>
+          <div class="field-input-wrapper">
+            <input type="text" id="field-name" class="field-input" placeholder="Họ tên cá nhân...">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">
+            <span>💼 Chức Danh / Chuyên Môn</span>
+            <button class="btn-copy" data-for="field-title">Copy</button>
+          </div>
+          <div class="field-input-wrapper">
+            <input type="text" id="field-title" class="field-input" placeholder="Chức danh công việc...">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">
+            <span>📞 Số Điện Thoại 1 (Chính)</span>
+            <button class="btn-copy" data-for="field-phone">Copy</button>
+          </div>
+          <div class="field-input-wrapper">
+            <input type="text" id="field-phone" class="field-input" placeholder="Số điện thoại chính...">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">
+            <span>📱 Số Điện Thoại 2 (Phụ / Hotline)</span>
+            <button class="btn-copy" data-for="field-phone2">Copy</button>
+          </div>
+          <div class="field-input-wrapper">
+            <input type="text" id="field-phone2" class="field-input" placeholder="Số điện thoại thứ 2 (nếu có)...">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">
+            <span>✉️ Địa Chỉ Email</span>
+            <button class="btn-copy" data-for="field-email">Copy</button>
+          </div>
+          <div class="field-input-wrapper">
+            <input type="text" id="field-email" class="field-input" placeholder="Email liên hệ...">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">
+            <span>🌐 Trang Web Công Ty</span>
+            <button class="btn-copy" data-for="field-website">Copy</button>
+          </div>
+          <div class="field-input-wrapper">
+            <input type="text" id="field-website" class="field-input" placeholder="Website...">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">
+            <span>📍 Địa Chỉ Văn Phòng</span>
+            <button class="btn-copy" data-for="field-address">Copy</button>
+          </div>
+          <div class="field-input-wrapper">
+            <input type="text" id="field-address" class="field-input" placeholder="Địa chỉ...">
+          </div>
+        </div>
+
+        <!-- Action Export Buttons -->
+        <div class="action-buttons" style="margin-top: 1.25rem;">
+          <button id="btn-sync-gsheet" class="btn-primary" style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); font-size: 1rem; font-weight: 600; padding: 12px 20px; border-radius: 10px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            📊 Lưu sang Google Sheet
+          </button>
+        </div>
+      </div>
+
+      <!-- COMPARE BOTH ENGINES PANEL -->
+      <div id="compare-result-panel" style="display: none;" class="compare-container">
+        
+        <!-- V1 Result Box -->
+        <div class="compare-card">
+          <div class="compare-header">
+            <span id="v1-engine">Version 1: Cloud AI Vision</span>
+            <span class="badge-v1" id="v1-latency">0 ms</span>
+          </div>
+          <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <p><strong>Công ty:</strong> <span id="v1-company">-</span></p>
+            <p><strong>Họ tên:</strong> <span id="v1-name">-</span></p>
+            <p><strong>Chức danh:</strong> <span id="v1-title">-</span></p>
+            <p><strong>SĐT 1:</strong> <span id="v1-phone">-</span></p>
+            <p><strong>SĐT 2:</strong> <span id="v1-phone2">-</span></p>
+            <p><strong>Email:</strong> <span id="v1-email">-</span></p>
+            <p><strong>Website:</strong> <span id="v1-website">-</span></p>
+          </div>
+        </div>
+
+        <!-- V2 Result Box -->
+        <div class="compare-card">
+          <div class="compare-header">
+            <span id="v2-engine">Version 2: Local OCR</span>
+            <span class="badge-v2" id="v2-latency">0 ms</span>
+          </div>
+          <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <p><strong>Công ty:</strong> <span id="v2-company">-</span></p>
+            <p><strong>Họ tên:</strong> <span id="v2-name">-</span></p>
+            <p><strong>Chức danh:</strong> <span id="v2-title">-</span></p>
+            <p><strong>SĐT 1:</strong> <span id="v2-phone">-</span></p>
+            <p><strong>SĐT 2:</strong> <span id="v2-phone2">-</span></p>
+            <p><strong>Email:</strong> <span id="v2-email">-</span></p>
+            <p><strong>Website:</strong> <span id="v2-website">-</span></p>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+  </main>
+
+  <script src="/static/js/api_client.js"></script>
+  <script src="/static/js/canvas_cropper.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
