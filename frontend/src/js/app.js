@@ -373,16 +373,89 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const btnOpenCamera = document.getElementById("btn-open-camera");
   const btnOpenGallery = document.getElementById("btn-open-gallery");
+  const liveCameraModal = document.getElementById("live-camera-modal");
+  const cameraStreamVideo = document.getElementById("camera-stream-video");
+  const btnCloseCameraModal = document.getElementById("btn-close-camera-modal");
+  const btnSnapPhoto = document.getElementById("btn-snap-photo");
+
+  let activeMediaStream = null;
+
+  const stopCameraStream = () => {
+    if (activeMediaStream) {
+      activeMediaStream.getTracks().forEach(track => track.stop());
+      activeMediaStream = null;
+    }
+    if (cameraStreamVideo) {
+      cameraStreamVideo.srcObject = null;
+    }
+    if (liveCameraModal) {
+      liveCameraModal.style.display = "none";
+    }
+  };
+
+  const startCameraStream = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      if (cameraInput) cameraInput.click();
+      return;
+    }
+
+    try {
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false
+        });
+      } catch (e) {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+
+      activeMediaStream = stream;
+      if (cameraStreamVideo) {
+        cameraStreamVideo.srcObject = stream;
+        await cameraStreamVideo.play();
+      }
+      if (liveCameraModal) {
+        liveCameraModal.style.display = "flex";
+      }
+    } catch (err) {
+      console.warn("Camera getUserMedia error, falling back to file input:", err);
+      if (cameraInput) cameraInput.click();
+    }
+  };
 
   if (btnOpenCamera) {
     btnOpenCamera.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (cameraInput) {
-        cameraInput.click();
-      } else {
-        fileInput.click();
-      }
+      startCameraStream();
     });
+  }
+
+  if (btnSnapPhoto) {
+    btnSnapPhoto.addEventListener("click", () => {
+      if (!cameraStreamVideo || !activeMediaStream) return;
+
+      const videoWidth = cameraStreamVideo.videoWidth || 1280;
+      const videoHeight = cameraStreamVideo.videoHeight || 720;
+
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = videoWidth;
+      tempCanvas.height = videoHeight;
+      const ctx = tempCanvas.getContext("2d");
+      ctx.drawImage(cameraStreamVideo, 0, 0, videoWidth, videoHeight);
+
+      tempCanvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], `card_camera_${Date.now()}.jpg`, { type: "image/jpeg" });
+          addFilesToQueue([file]);
+        }
+        stopCameraStream();
+      }, "image/jpeg", 0.95);
+    });
+  }
+
+  if (btnCloseCameraModal) {
+    btnCloseCameraModal.addEventListener("click", stopCameraStream);
   }
 
   if (btnOpenGallery) {
