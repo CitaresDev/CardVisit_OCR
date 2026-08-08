@@ -395,20 +395,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const startCameraStream = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      if (cameraInput) cameraInput.click();
+      alert("Trình duyệt của bạn không hỗ trợ camera trực tiếp.");
       return;
     }
 
     try {
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false
-        });
-      } catch (e) {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false
+      });
 
       activeMediaStream = stream;
       if (cameraStreamVideo) {
@@ -419,8 +414,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         liveCameraModal.style.display = "flex";
       }
     } catch (err) {
-      console.warn("Camera getUserMedia error, falling back to file input:", err);
-      if (cameraInput) cameraInput.click();
+      console.warn("Camera getUserMedia error:", err);
+      stopCameraStream();
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        alert("Trình duyệt chưa được cấp quyền truy cập Camera/Webcam. Vui lòng cho phép quyền Camera trên thanh địa chỉ trình duyệt.");
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        alert("Không tìm thấy thiết bị Camera / Webcam trên máy tính của bạn.");
+      } else {
+        alert("Không thể khởi chạy Camera: " + (err.message || err.name));
+      }
     }
   };
 
