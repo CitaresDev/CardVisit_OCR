@@ -400,10 +400,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false
-      });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+      } catch (e1) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
+      }
 
       activeMediaStream = stream;
       if (cameraStreamVideo) {
@@ -417,9 +425,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.warn("Camera getUserMedia error:", err);
       stopCameraStream();
       if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-        alert("Trình duyệt chưa được cấp quyền truy cập Camera/Webcam. Vui lòng cho phép quyền Camera trên thanh địa chỉ trình duyệt.");
+        alert("Trình duyệt chưa được cấp quyền truy cập Camera/Webcam. Vui lòng cấp quyền Camera trên thanh địa chỉ trình duyệt.");
+      } else if (err.name === "NotReadableError" || err.name === "TrackStartError" || (err.message && err.message.includes("Could not start video source"))) {
+        const useFallback = confirm("Camera/Webcam của bạn hiện đang bị chiếm bởi một phần mềm/tab khác (Zoom, Meet, Teams, Zalo, Lenovo Vantage...).\n\nVui lòng đóng phần mềm đang dùng Camera và thử lại. Bạn có muốn chọn ảnh từ máy tính thay thế không?");
+        if (useFallback && fileInput) {
+          fileInput.click();
+        }
       } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
-        alert("Không tìm thấy thiết bị Camera / Webcam trên máy tính của bạn.");
+        const useFallback = confirm("Không tìm thấy thiết bị Camera/Webcam trên máy tính.\n\nBạn có muốn mở hộp thoại chọn tệp ảnh không?");
+        if (useFallback && fileInput) {
+          fileInput.click();
+        }
       } else {
         alert("Không thể khởi chạy Camera: " + (err.message || err.name));
       }
