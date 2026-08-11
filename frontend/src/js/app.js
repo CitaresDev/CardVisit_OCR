@@ -372,13 +372,33 @@ document.addEventListener("DOMContentLoaded", async () => {
   selectedEngine = "v1";
 
   const btnOpenCamera = document.getElementById("btn-open-camera");
+  const btnCameraMobileNative = document.getElementById("btn-camera-mobile-native");
   const btnOpenGallery = document.getElementById("btn-open-gallery");
   const liveCameraModal = document.getElementById("live-camera-modal");
   const cameraStreamVideo = document.getElementById("camera-stream-video");
   const btnCloseCameraModal = document.getElementById("btn-close-camera-modal");
   const btnSnapPhoto = document.getElementById("btn-snap-photo");
+  const cameraSelectDevice = document.getElementById("camera-select-device");
+  const cameraResBadge = document.getElementById("camera-res-badge");
+  const chkAutoEnhance = document.getElementById("chk-auto-enhance");
 
   let activeMediaStream = null;
+  let availableCameraDevices = [];
+
+  // Handle Mobile Native Camera button click
+  if (btnCameraMobileNative && cameraInput) {
+    btnCameraMobileNative.addEventListener("click", (e) => {
+      e.stopPropagation();
+      cameraInput.click();
+    });
+
+    cameraInput.addEventListener("change", (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        addFilesToQueue(Array.from(e.target.files));
+        e.target.value = "";
+      }
+    });
+  }
 
   const stopCameraStream = () => {
     if (activeMediaStream) {
@@ -393,22 +413,55 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
-  const startCameraStream = async () => {
+  const populateCameraDevices = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      availableCameraDevices = devices.filter(d => d.kind === "videoinput");
+      if (cameraSelectDevice) {
+        cameraSelectDevice.innerHTML = availableCameraDevices.map((d, index) => 
+          `<option value="${d.deviceId}">${d.label || `Camera ${index + 1}`}</option>`
+        ).join("");
+      }
+    } catch (e) {
+      console.log("Enumerate devices error:", e);
+    }
+  };
+
+  const startCameraStream = async (targetDeviceId = null) => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       alert("Trình duyệt của bạn không hỗ trợ camera trực tiếp.");
       return;
+    }
+
+    if (activeMediaStream) {
+      activeMediaStream.getTracks().forEach(t => t.stop());
+    }
+
+    // High Resolution Constraints (Try 1080p -> 720p fallback)
+    const videoConstraints = {
+      width: { ideal: 1920, min: 1280 },
+      height: { ideal: 1080, min: 720 },
+      advanced: [{ focusMode: "continuous" }]
+    };
+
+    if (targetDeviceId) {
+      videoConstraints.deviceId = { exact: targetDeviceId };
+    } else {
+      videoConstraints.facingMode = { ideal: "environment" };
     }
 
     try {
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
+          video: videoConstraints,
           audio: false
         });
       } catch (e1) {
+        // Fallback constraint if 1080p failed
         stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
+          video: { facingMode: { ideal: "environment" } },
           audio: false
         });
       }
@@ -417,10 +470,22 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (cameraStreamVideo) {
         cameraStreamVideo.srcObject = stream;
         await cameraStreamVideo.play();
+
+        // Update camera resolution badge dynamically
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+          const settings = videoTrack.getSettings();
+          if (settings.width && settings.height && cameraResBadge) {
+            cameraResBadge.innerText = `${settings.width}x${settings.height}px ${settings.height >= 1080 ? '⭐ HD' : ''}`;
+          }
+        }
       }
+
       if (liveCameraModal) {
         liveCameraModal.style.display = "flex";
       }
+
+      await populateCameraDevices();
     } catch (err) {
       console.warn("Camera getUserMedia error:", err);
       stopCameraStream();
@@ -442,6 +507,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
+  if (cameraSelectDevice) {
+    cameraSelectDevice.addEventListener("change", (e) => {
+      const devId = e.target.value;
+      if (devId) {
+        startCameraStream(devId);
+      }
+    });
+  }
+
   if (btnOpenCamera) {
     btnOpenCamera.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -453,22 +527,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnSnapPhoto.addEventListener("click", () => {
       if (!cameraStreamVideo || !activeMediaStream) return;
 
-      const videoWidth = cameraStreamVideo.videoWidth || 1280;
-      const videoHeight = cameraStreamVideo.videoHeight || 720;
+      const videoWidth = cameraStreamVideo.videoWidth || 1920;
+      const videoHeight = cameraStreamVideo.videoHeight || 1080;
 
       const tempCanvas = document.createElement("canvas");
       tempCanvas.width = videoWidth;
       tempCanvas.height = videoHeight;
       const ctx = tempCanvas.getContext("2d");
+
+      // Apply sharpening filter enhancement if enabled
+      if (chkAutoEnhance && chkAutoEnhance.checked) {
+        ctx.filter = "contrast(1.18) brightness(1.04) saturate(1.05)";
+      }
+
       ctx.drawImage(cameraStreamVideo, 0, 0, videoWidth, videoHeight);
 
       tempCanvas.toBlob((blob) => {
         if (blob) {
-          const file = new File([blob], `card_camera_${Date.now()}.jpg`, { type: "image/jpeg" });
+          const file = new File([blob], `card_camera_hd_${Date.now()}.jpg`, { type: "image/jpeg" });
           addFilesToQueue([file]);
         }
         stopCameraStream();
-      }, "image/jpeg", 0.95);
+      }, "image/jpeg", 0.96);
     });
   }
 

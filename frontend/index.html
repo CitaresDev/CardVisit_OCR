@@ -79,9 +79,10 @@
     <div style="position: relative; width: 100%; max-width: 640px; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); display: flex; flex-direction: column;">
       
       <!-- Modal Header -->
-      <div style="padding: 16px 20px; background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(255, 255, 255, 0.1); display: flex; justify-content: space-between; align-items: center;">
+      <div style="padding: 12px 20px; background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(255, 255, 255, 0.1); display: flex; justify-content: space-between; align-items: center;">
         <div style="font-weight: 600; color: #60a5fa; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
           <span>Chụp Ảnh Danh Thiếp Trực Tiếp</span>
+          <span id="camera-res-badge" style="font-size: 0.7rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 8px; border-radius: 10px;">HD 1080p</span>
         </div>
         <button id="btn-close-camera-modal" type="button" style="background: rgba(255,255,255,0.1); border: none; color: #94a3b8; width: 32px; height: 32px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
       </div>
@@ -91,15 +92,26 @@
         <video id="camera-stream-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
         
         <!-- Framing overlay box to guide card placement -->
-        <div style="position: absolute; inset: 12%; border: 2px dashed rgba(59, 130, 246, 0.85); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); pointer-events: none; display: flex; align-items: center; justify-content: center;">
-          <span style="color: rgba(255, 255, 255, 0.85); font-size: 0.85rem; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.2); padding: 6px 16px; border-radius: 20px; font-weight: 500;">Đặt danh thiếp vừa khung này</span>
+        <div style="position: absolute; inset: 10%; border: 2px dashed rgba(59, 130, 246, 0.85); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+          <span style="color: rgba(255, 255, 255, 0.95); font-size: 0.85rem; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255,255,255,0.2); padding: 6px 16px; border-radius: 20px; font-weight: 500;">Giữ danh thiếp phẳng & vuông góc khung này</span>
+          <span style="color: #fbbf24; font-size: 0.75rem; background: rgba(0,0,0,0.6); padding: 2px 10px; border-radius: 10px;">💡 Mẹo: Đặt đủ ánh sáng & né bóng râm</span>
         </div>
       </div>
 
       <!-- Controls Footer -->
-      <div style="padding: 16px; background: rgba(15, 23, 42, 0.9); display: flex; gap: 12px; justify-content: center; align-items: center;">
-        <button id="btn-snap-photo" type="button" style="flex: 1; padding: 14px; font-size: 1rem; font-weight: 600; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 12px; color: white; cursor: pointer; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; gap: 8px;">
-          <span>Chụp Ảnh Ngay</span>
+      <div style="padding: 14px; background: rgba(15, 23, 42, 0.9); display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center;">
+          <select id="camera-select-device" style="flex: 1; padding: 8px 12px; font-size: 0.8rem; background: rgba(30, 41, 59, 0.9); color: #f8fafc; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;">
+            <option value="">-- Đang tìm Camera --</option>
+          </select>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #94a3b8; cursor: pointer;">
+            <input type="checkbox" id="chk-auto-enhance" checked style="accent-color: #3b82f6;">
+            <span>Làm sắc nét chữ (AI Boost)</span>
+          </label>
+        </div>
+
+        <button id="btn-snap-photo" type="button" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 600; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 12px; color: white; cursor: pointer; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span>📸 Chụp & Tăng Độ Nét</span>
         </button>
       </div>
 
@@ -138,15 +150,20 @@
         </h2>
 
         <!-- Dual Action Mobile Buttons -->
-        <div class="mobile-action-bar" style="display: flex; gap: 10px; margin-bottom: 1rem;">
+        <div class="mobile-action-bar" style="display: flex; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap;">
           <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;">
-          <button type="button" id="btn-open-camera" class="btn-primary" style="flex: 1; padding: 14px 16px; font-size: 0.95rem; font-weight: 600; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; border-radius: 12px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">
-            Mở Camera Chụp
+          
+          <button type="button" id="btn-open-camera" class="btn-primary" style="flex: 1; min-width: 140px; padding: 12px 14px; font-size: 0.9rem; font-weight: 600; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; border-radius: 12px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">
+            <span>📸 Webcam HD</span>
+          </button>
+
+          <button type="button" id="btn-camera-mobile-native" class="btn-primary" style="flex: 1; min-width: 140px; padding: 12px 14px; font-size: 0.9rem; font-weight: 600; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 12px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
+            <span>📷 App Cam ĐT</span>
           </button>
           
           <input type="file" id="file-input" accept="image/*" multiple style="display: none;">
-          <button type="button" id="btn-open-gallery" class="btn-secondary" style="flex: 1; padding: 14px 16px; font-size: 0.95rem; font-weight: 600; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-            Tải Ảnh Từ Thư Viện
+          <button type="button" id="btn-open-gallery" class="btn-secondary" style="flex: 1; min-width: 140px; padding: 12px 14px; font-size: 0.9rem; font-weight: 600; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>🖼️ Thư Viện</span>
           </button>
         </div>
 
