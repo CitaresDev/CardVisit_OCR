@@ -385,9 +385,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   let activeMediaStream = null;
   let availableCameraDevices = [];
 
-  // Handle Mobile Native Camera button click
-  if (btnCameraMobileNative && cameraInput) {
-    btnCameraMobileNative.addEventListener("click", (e) => {
+  // Direct Camera Trigger (Always use Native OS Camera App for 100% full resolution)
+  if (btnOpenCamera && cameraInput) {
+    btnOpenCamera.addEventListener("click", (e) => {
       e.stopPropagation();
       cameraInput.click();
     });
@@ -516,12 +516,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  if (btnOpenCamera) {
-    btnOpenCamera.addEventListener("click", (e) => {
-      e.stopPropagation();
-      startCameraStream();
-    });
-  }
+
 
   if (btnSnapPhoto) {
     btnSnapPhoto.addEventListener("click", () => {

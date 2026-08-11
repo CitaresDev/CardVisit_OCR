@@ -68,6 +68,14 @@ def generate_vcard(card_data: dict) -> str:
 
     return j.serialize()
 
+def sanitize_card_data(card_data: dict | list):
+    """Sanitizes card data dictionary or list to ensure safe serialization."""
+    if isinstance(card_data, dict):
+        return {k: (v if v is not None else "") for k, v in card_data.items()}
+    elif isinstance(card_data, list):
+        return [{k: (v if v is not None else "") for k, v in item.items()} if isinstance(item, dict) else item for item in card_data]
+    return card_data
+
 COLUMN_MAPPING = {
     "company_name": "Tên công ty / Tổ chức",
     "full_name": "Họ và tên chủ thẻ",
