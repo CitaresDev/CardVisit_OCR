@@ -29,7 +29,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "backend/app.py"
+      "dest": "frontend/$1"
     }
   ]
 }
