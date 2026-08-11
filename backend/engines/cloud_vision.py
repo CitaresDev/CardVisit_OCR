@@ -118,6 +118,7 @@ def split_multiple_phones(res: dict) -> dict:
             if len(found) >= 2:
                 res["phone"] = found[0]
                 res["phone_2"] = found[1]
+    return res
 
 def clean_extracted_dict(res: dict) -> dict:
     """Strip markdown formatting (like **bold**) and clean values in extracted dictionary."""
@@ -142,10 +143,10 @@ def auto_fill_phone_2_hybrid(res: dict, image_bytes: bytes = None) -> dict:
     if image_bytes and res.get("phone") and not res.get("phone_2"):
         try:
             from backend.engines.local_ocr import extract_with_local_ocr
-            loc_res = extract_with_local_ocr(image_bytes)
+            loc_res = extract_with_local_ocr(image_bytes) or {}
             p1_digits = re.sub(r'\D', '', str(res.get("phone", "")))
 
-            for loc_p in [loc_res.get("phone_2", ""), loc_res.get("phone", "")]:
+            for loc_p in [loc_res.get("phone_2", "") if isinstance(loc_res, dict) else "", loc_res.get("phone", "") if isinstance(loc_res, dict) else ""]:
                 loc_digits = re.sub(r'\D', '', str(loc_p))
                 if len(loc_digits) >= 8 and loc_digits not in p1_digits and p1_digits not in loc_digits:
                     res["phone_2"] = loc_p
@@ -220,25 +221,26 @@ YÊU CẦU:
             return {"error": "No response from NVIDIA Llama 3.2 Vision"}
 
         text_content = choices[0].get("message", {}).get("content", "")
-        parsed = parse_robust_json(text_content)
+        parsed = parse_robust_json(text_content) or {}
 
         res_dict = {
             "engine": "NVIDIA NIM - Llama 3.2 11B Vision",
-            "company_name": parsed.get("company_name", ""),
-            "full_name": parsed.get("full_name", ""),
-            "job_title": parsed.get("job_title", ""),
-            "phone": parsed.get("phone", ""),
-            "phone_2": parsed.get("phone_2", ""),
-            "email": parsed.get("email", ""),
-            "website": parsed.get("website", ""),
-            "address": parsed.get("address", ""),
-            "tax_code": parsed.get("tax_code", "")
+            "company_name": parsed.get("company_name", "") if isinstance(parsed, dict) else "",
+            "full_name": parsed.get("full_name", "") if isinstance(parsed, dict) else "",
+            "job_title": parsed.get("job_title", "") if isinstance(parsed, dict) else "",
+            "phone": parsed.get("phone", "") if isinstance(parsed, dict) else "",
+            "phone_2": parsed.get("phone_2", "") if isinstance(parsed, dict) else "",
+            "email": parsed.get("email", "") if isinstance(parsed, dict) else "",
+            "website": parsed.get("website", "") if isinstance(parsed, dict) else "",
+            "address": parsed.get("address", "") if isinstance(parsed, dict) else "",
+            "tax_code": parsed.get("tax_code", "") if isinstance(parsed, dict) else ""
         }
 
         # If extraction is empty, return error to allow fallback
         if not res_dict.get("company_name") and not res_dict.get("full_name") and not res_dict.get("phone"):
             return {"error": "NVIDIA Llama Vision returned empty extraction result"}
 
+        res_dict = clean_extracted_dict(res_dict)
         res_dict = split_multiple_phones(res_dict)
         return auto_fill_phone_2_hybrid(res_dict, image_bytes)
     except Exception as e:
@@ -299,19 +301,19 @@ YÊU CẦU:
             return {"error": "Không nhận được phản hồi từ Gemini AI Vision"}
 
         text_content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-        parsed = parse_robust_json(text_content)
+        parsed = parse_robust_json(text_content) or {}
 
         res_dict = {
             "engine": "Cloud AI Vision - Gemini 3.6 Flash",
-            "company_name": parsed.get("company_name", ""),
-            "full_name": parsed.get("full_name", ""),
-            "job_title": parsed.get("job_title", ""),
-            "phone": parsed.get("phone", ""),
-            "phone_2": parsed.get("phone_2", ""),
-            "email": parsed.get("email", ""),
-            "website": parsed.get("website", ""),
-            "address": parsed.get("address", ""),
-            "tax_code": parsed.get("tax_code", "")
+            "company_name": parsed.get("company_name", "") if isinstance(parsed, dict) else "",
+            "full_name": parsed.get("full_name", "") if isinstance(parsed, dict) else "",
+            "job_title": parsed.get("job_title", "") if isinstance(parsed, dict) else "",
+            "phone": parsed.get("phone", "") if isinstance(parsed, dict) else "",
+            "phone_2": parsed.get("phone_2", "") if isinstance(parsed, dict) else "",
+            "email": parsed.get("email", "") if isinstance(parsed, dict) else "",
+            "website": parsed.get("website", "") if isinstance(parsed, dict) else "",
+            "address": parsed.get("address", "") if isinstance(parsed, dict) else "",
+            "tax_code": parsed.get("tax_code", "") if isinstance(parsed, dict) else ""
         }
         res_dict = clean_extracted_dict(res_dict)
         res_dict = split_multiple_phones(res_dict)
