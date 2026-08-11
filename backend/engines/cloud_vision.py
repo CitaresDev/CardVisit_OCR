@@ -119,12 +119,23 @@ def split_multiple_phones(res: dict) -> dict:
                 res["phone"] = found[0]
                 res["phone_2"] = found[1]
 
-    if res.get("phone"):
-        res["phone"] = clean_phone_number(res["phone"])
-    if res.get("phone_2"):
-        res["phone_2"] = clean_phone_number(res["phone_2"])
+def clean_extracted_dict(res: dict) -> dict:
+    """Strip markdown formatting (like **bold**) and clean values in extracted dictionary."""
+    cleaned = {}
+    for k, v in res.items():
+        if isinstance(v, str):
+            # Strip markdown ** and *
+            val = v.replace("**", "").replace("*", "").strip()
+            cleaned[k] = val
+        else:
+            cleaned[k] = v
+    
+    if cleaned.get("phone"):
+        cleaned["phone"] = clean_phone_number(cleaned["phone"])
+    if cleaned.get("phone_2"):
+        cleaned["phone_2"] = clean_phone_number(cleaned["phone_2"])
 
-    return res
+    return cleaned
 
 def auto_fill_phone_2_hybrid(res: dict, image_bytes: bytes = None) -> dict:
     """General cross-referencing fallback if AI Vision missed a 2nd phone line."""
