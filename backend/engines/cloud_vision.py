@@ -228,7 +228,6 @@ YÊU CẦU:
         if not res_dict.get("company_name") and not res_dict.get("full_name") and not res_dict.get("phone"):
             return {"error": "NVIDIA Llama Vision returned empty extraction result"}
 
-        res_dict = clean_extracted_dict(res_dict)
         res_dict = split_multiple_phones(res_dict)
         return auto_fill_phone_2_hybrid(res_dict, image_bytes)
     except Exception as e:
@@ -236,10 +235,9 @@ YÊU CẦU:
 
 def extract_with_gemini_vision_direct(image_bytes: bytes, api_key: str) -> dict:
     """
-    PRIORITY 2 (Fallback): Uses Gemini 2.0 Flash Vision API.
+    Uses Gemini 3.6 Flash Vision REST API.
     """
     b64_image = base64.b64encode(image_bytes).decode("utf-8")
-    
     prompt = """
 Hãy đọc kỹ hình ảnh danh thiếp (Business Card) này và bóc tách thông tin chính xác theo định dạng JSON duy nhất:
 
@@ -259,8 +257,7 @@ YÊU CẦU:
 1. Đọc tất cả các dòng chữ trên card. Nếu có 2 số điện thoại khác nhau, bắt buộc số thứ 1 vào "phone" và số thứ 2 vào "phone_2".
 2. Trả về duy nhất khối JSON hợp lệ.
 """
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
     payload = {
         "contents": [
@@ -281,14 +278,11 @@ YÊU CẦU:
             "temperature": 0.1
         }
     }
-
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=25)
-        if response.status_code != 200:
-            err_detail = response.json().get("error", {}).get("message", response.text)
-            return {"error": f"Gemini API ({response.status_code}): {err_detail}"}
-
-        res_data = response.json()
+        resp = requests.post(url, headers=headers, json=payload, timeout=25)
+        if resp.status_code != 200:
+            return {"error": f"Gemini API ({resp.status_code}): {resp.text}"}
+        res_data = resp.json()
         candidates = res_data.get("candidates", [])
         if not candidates:
             return {"error": "Không nhận được phản hồi từ Gemini AI Vision"}
@@ -297,7 +291,7 @@ YÊU CẦU:
         parsed = parse_robust_json(text_content)
 
         res_dict = {
-            "engine": "Gemini 2.0 Flash Vision (Cloud AI)",
+            "engine": "Cloud AI Vision - Gemini 3.6 Flash",
             "company_name": parsed.get("company_name", ""),
             "full_name": parsed.get("full_name", ""),
             "job_title": parsed.get("job_title", ""),
@@ -311,8 +305,8 @@ YÊU CẦU:
         res_dict = clean_extracted_dict(res_dict)
         res_dict = split_multiple_phones(res_dict)
         return auto_fill_phone_2_hybrid(res_dict, image_bytes)
-    except Exception as e:
-        return {"error": f"Ngoại lệ Gemini Vision: {str(e)}"}
+    except Exception as err_rest:
+        return {"error": f"Ngoại lệ Gemini Vision: {str(err_rest)}"}
 
 def extract_with_gemini_vision(image_bytes: bytes, api_key: str = None) -> dict:
     """
@@ -323,7 +317,7 @@ def extract_with_gemini_vision(image_bytes: bytes, api_key: str = None) -> dict:
     load_dotenv(override=True)
     last_error = ""
 
-    # 1. Check NVIDIA API Key
+    # 1. Check NVIDIA API Key (Priority 1)
     nvidia_key = api_key if (api_key and api_key.startswith("nvapi-")) else os.getenv("NVIDIA_API_KEY", "").strip().strip('"').strip("'")
     if nvidia_key and nvidia_key != "your_nvidia_api_key_here":
         res_nvidia = extract_with_nvidia_llama_vision(image_bytes, api_key=nvidia_key)
@@ -332,7 +326,7 @@ def extract_with_gemini_vision(image_bytes: bytes, api_key: str = None) -> dict:
         last_error = str(res_nvidia.get("error"))
         print(f"[WARNING] NVIDIA Llama Vision error: {last_error}. Fallback to Gemini...")
 
-    # 2. Check Gemini API Key
+    # 2. Check Gemini API Key (Priority 2 Fallback)
     gemini_key = api_key if (api_key and not api_key.startswith("nvapi-")) else os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
     if gemini_key and gemini_key != "your_gemini_api_key_here":
         res_gemini = extract_with_gemini_vision_direct(image_bytes, api_key=gemini_key)

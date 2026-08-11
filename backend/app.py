@@ -223,10 +223,27 @@ async def export_csv_endpoint(card_list: list):
     )
 
 @app.post("/api/save-google-sheet")
-async def save_google_sheet_endpoint(payload: dict):
+async def save_google_sheet_endpoint(request: Request, payload: dict):
+    from backend.database.db_manager import decode_jwt_token
     webhook_url = os.getenv("GOOGLE_SHEET_WEBHOOK_URL", "").strip()
     if not webhook_url:
         return {"success": False, "error": "Chưa cài đặt GOOGLE_SHEET_WEBHOOK_URL trên Vercel Environment Variables."}
+    
+    # Extract scanned_by user
+    token = extract_token_from_request(request)
+    scanned_by = "Guest"
+    if token:
+        user_info = decode_jwt_token(token)
+        if user_info:
+            scanned_by = user_info.get("full_name") or user_info.get("username") or "Admin"
+    
+    if isinstance(payload, dict):
+        payload["scanned_by"] = payload.get("scanned_by") or scanned_by
+    elif isinstance(payload, list):
+        for item in payload:
+            if isinstance(item, dict):
+                item["scanned_by"] = item.get("scanned_by") or scanned_by
+
     return send_to_google_sheet(payload, webhook_url)
 
 # --------------------------------------------------------------------------

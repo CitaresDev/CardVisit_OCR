@@ -68,12 +68,32 @@ def generate_vcard(card_data: dict) -> str:
 
     return j.serialize()
 
+def clean_phone_for_sheets(val):
+    if not val:
+        return ""
+    val_str = str(val).strip()
+    # Add single quote prefix to leading '+' so Google Sheets stores any international phone number (+84, +65, +1, +44...) as raw Text without formula error
+    if val_str.startswith("+"):
+        val_str = "'" + val_str
+    return val_str
+
 def sanitize_card_data(card_data: dict | list):
     """Sanitizes card data dictionary or list to ensure safe serialization."""
+    def clean_item(item):
+        if not isinstance(item, dict):
+            return item
+        cleaned = {}
+        for k, v in item.items():
+            val = v if v is not None else ""
+            if k in ["phone", "phone_2"]:
+                val = clean_phone_for_sheets(val)
+            cleaned[k] = val
+        return cleaned
+
     if isinstance(card_data, dict):
-        return {k: (v if v is not None else "") for k, v in card_data.items()}
+        return clean_item(card_data)
     elif isinstance(card_data, list):
-        return [{k: (v if v is not None else "") for k, v in item.items()} if isinstance(item, dict) else item for item in card_data]
+        return [clean_item(i) for i in card_data]
     return card_data
 
 COLUMN_MAPPING = {
