@@ -1,72 +1,79 @@
-# Business Card Reader & Extractor (Đa Nền Tảng: Desktop Web, Mobile Web & Android App)
+# Business Card Reader & Extractor v2.1 (Cross-Platform Web & Mobile)
 
-Hệ thống trích xuất thông tin Card Visit song ngữ Tiếng Việt & Tiếng Anh đa nền tảng, tích hợp 2 Engine xử lý (Cloud AI Vision & Local Offline DIP OCR) kèm chế độ so sánh song song Side-by-Side.
-
----
-
-## 🌟 Tính Năng Nổi Bật
-
-1. **Đa Nền Tảng (Cross-Platform)**:
-   - **Desktop Web**: Kéo thả ảnh, căn góc 4 điểm trực quan trên Canvas, giao diện Dashboard hiện đại.
-   - **Mobile Web**: Mở máy ảnh chụp card visit trực tiếp từ điện thoại (`Camera Snap`).
-   - **Android App (PWA)**: Bấm "Thêm vào Màn hình chính" trên Android để dùng như App Android bản địa.
-
-2. **2 Engine Xử Lý Độc Lập & So Sánh Song Song**:
-   - **Version 1 (Cloud AI Vision)**: Sử dụng Gemini 2.0 Flash Vision API (Miễn phí 1,500 card/ngày), nhận diện chính xác >95% Tiếng Việt & Tiếng Anh.
-   - **Version 2 (Local Offline Engine)**: Sử dụng OpenCV DIP (Corner Detection & Perspective Warp) + Tesseract OCR + Spatial Regex Parser (100% Offline).
-   - **Chế độ Compare Both**: Cho phép so sánh kết quả và tốc độ (latency ms) của 2 engine trên cùng 1 card.
-
-3. **Xuất Dữ Liệu Tức Thì (Instant Export)**:
-   - 📱 **Tải file vCard (`.vcf`)**: Lưu danh bạ thẳng vào điện thoại iPhone/Android.
-   - 📊 **Xuất File CSV / Excel**: Lưu danh sách danh thiếp đã quét.
-   - 📋 **Copy 1-Click**: Sao chép nhanh từng trường dữ liệu.
+Hệ thống trích xuất thông tin Danh thiếp (Business Card) Đa ngôn ngữ (Tiếng Việt & Tiếng Anh), tích hợp kiến trúc **Dual Engine AI Vision** kép (NVIDIA NIM Llama 3.2 11B Vision & Google Gemini 3.6 Flash), hệ thống phân quyền tài khoản JWT, cùng quy trình **Tự động hóa Đồng bộ & Sao lưu Google Sheets / Google Drive**.
 
 ---
 
-## 🔑 Cấu Hình API Key trong `.env`
+## 🌟 Tính Năng Nổi Bật (Phiên Bản 2.1)
 
-Mở file **[.env](file:///d:/CARD_VISIT/.env)** tại thư mục gốc và dán API Key của bạn (NVIDIA hoặc Gemini):
+1. **Dual Engine AI Vision Kép (Tốc Độ & Độ Chính Xác Cao)**:
+   - 🟢 **Primary (Ưu tiên 1)**: `NVIDIA NIM - Meta Llama 3.2 11B Vision Instruct` — Xử lý hình ảnh và văn bản đa ngôn ngữ siêu nhanh với độ chính xác cao.
+   - 🟡 **Fallback (Dự phòng 2)**: `Google Gemini 3.6 Flash` — Tự động dự phòng ngầm khi NVIDIA xảy ra ngắt kết nối hoặc hết quota.
+
+2. **Chụp Ảnh Trực Tiếp & Làm Nét Chữ (Camera HD & Mobile Native)**:
+   - 📱 **Mobile Native Camera**: Kích hoạt trực tiếp Ứng dụng Camera mặc định của điện thoại (iOS / Android), chụp ảnh sắc nét với độ phân giải gốc 100% (12MP - 48MP).
+   - 💻 **Webcam Live HD**: Ép khung hình 1080p, hỗ trợ tự động căn góc và bộ lọc **Làm sắc nét chữ (AI Boost)** giúp tăng độ tương phản khi chụp bằng máy tính.
+
+3. **Tự Động Đồng Bộ Google Sheets & Sao Lưu Google Drive**:
+   - 📊 **Lưu 1-Click vào Google Sheet**: Tự động lưu thông tin chủ thẻ, số điện thoại (đã định dạng chuẩn tránh lỗi công thức), email, công ty, thời gian quét và **Tên tài khoản người quét**.
+   - 🔄 **Sao lưu Xoay Vòng Google Drive (Mỗi 4 ngày/lần)**: Tự động chạy ngầm sao lưu file dữ liệu mới nhất vào thư mục `new_record` và di chuyển bản lưu trước đó sang `old_backup` để chống mất mát dữ liệu.
+
+4. **Bảo Mật & Quản Lý Tài Khoản (JWT Auth & Admin System)**:
+   - Hệ thống Đăng nhập / Đăng xuất bảo mật chuẩn quốc tế (JWT Token / Bearer Headers).
+   - Phân quyền **Admin**: Cho phép tài khoản Admin cấp thêm tài khoản người dùng mới trực tiếp trên giao diện Web.
+
+5. **Xuất Dữ Liệu Đa Dạng**:
+   - 📱 **Tải file vCard (`.vcf`)**: Lưu danh bạ trực tiếp vào điện thoại iPhone/Android.
+   - 📊 **Xuất File Excel (`.xlsx`) & CSV (`.csv`)**: Phù hợp cho việc lưu trữ và xuất báo cáo.
+
+---
+
+## 🔑 Cấu Hình Biến Môi Trường (`.env`)
+
+Tạo hoặc cập nhật file **[.env](file:///d:/CARD_VISIT/.env)** tại thư mục gốc của dự án:
 
 ```env
-# NVIDIA API Key (Khuyên dùng - Lấy miễn phí tại build.nvidia.com)
+# NVIDIA API Key (Chạy chính - Lấy miễn phí tại build.nvidia.com)
 NVIDIA_API_KEY=nvapi-your_nvidia_api_key_here
 
-# Hoặc Gemini API Key (aistudio.google.com)
+# Google Gemini API Key (Dự phòng - Lấy tại aistudio.google.com)
 GEMINI_API_KEY=your_gemini_api_key_here
-```
 
-Sau khi lưu file `.env`, ứng dụng sẽ tự động nhận diện và sử dụng API Key mà bạn không cần phải nhập thủ công trên giao diện Web!
+# Google Sheet Webhook URL (Xử lý lưu trữ dữ liệu tự động)
+GOOGLE_SHEET_WEBHOOK_URL=https://script.google.com/macros/s/your_google_script_deployment_id/exec
+
+# Mật khẩu bảo mật JWT Token
+JWT_SECRET_KEY=citares_secure_jwt_secret_key_2026_pro
+```
 
 ---
 
-## 🚀 Hướng Dẫn Khởi Chạy
+## 🚀 Hướng Dẫn Khởi Chạy Dự Án
 
-### Cách 1: Chạy 1-Click trên Windows (Đơn giản nhất)
-Nhấp kép vào file `run.bat` trong thư mục gốc `d:\CARD_VISIT`. Script sẽ tự khởi động server và mở trình duyệt tại địa chỉ `http://localhost:8000`.
+### Cách 1: Chạy Nhanh 1-Click trên Windows
+Nhấp kép vào file `run.bat` trong thư mục gốc dự án. Script sẽ tự động kích hoạt môi trường `venv` và chạy server tại `http://localhost:8000`.
 
-### Cách 2: Chạy bằng câu lệnh Terminal (Dùng môi trường ảo venv)
+### Cách 2: Chạy Thủ Công Qua Terminal
 ```bash
-# 1. Tạo và kích hoạt môi trường ảo venv
-python -m venv venv
+# 1. Kích hoạt môi trường ảo venv
 venv\Scripts\activate.bat        # Trên Windows
 # source venv/bin/activate        # Trên Linux/macOS
 
-# 2. Cài đặt thư viện vào venv
-pip install -r backend/requirements.txt
+# 2. Cài đặt các thư viện bổ sung (nếu chưa có)
+pip install -r requirements.txt
 
-# 3. Khởi chạy server FastAPI từ venv
+# 3. Khởi chạy Server FastAPI Backend
 python -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Sau khi chạy server, mở trình duyệt truy cập:
-- **Địa chỉ máy tính**: `http://localhost:8000`
-- **Địa chỉ điện thoại (cùng mạng Wi-Fi)**: `http://<IP_MAY_TINH>:8000`
+Sau khi khởi chạy:
+- **Truy cập từ Máy tính**: `http://localhost:8000`
+- **Truy cập từ Điện thoại (Cùng Wi-Fi)**: `http://<IP_MAY_TINH>:8000`
 
 ---
 
-## 🧪 Thử Nghiệm Với Bộ Card Mẫu (`Card_test`)
-Trình duyệt sẽ hiển thị sẵn 4 card mẫu có sẵn trong thư mục `Card_test`:
-- `card1.jpg`: Card màu vàng, bị ngón tay cầm, thông tin Tiếng Việt (`PHẠM XUÂN TÌNH`).
-- `card2.jpg`: Card xanh `HUGTECH`, có ảnh chân dung (`PHẠM CAO HÙNG`).
-- `card3.jpg`: Card `Kamogawa`, song ngữ Nhật-Anh-Việt.
-- `card4.jpg`: Card `CITARES`, dạng chuẩn.
+## 🌐 Hướng Dẫn Deploy Production (Miễn Phí)
+
+- **Frontend**: Push code lên GitHub -> Deploy lên **Vercel** -> Trỏ tên miền riêng (Custom Domain).
+- **Backend**: Deploy lên **Render.com** (dùng web service Python) -> Khai báo các biến `.env` trên Render Environment Settings.
+- **Database**: Sử dụng PostgreSQL Cloud (Supabase hoặc Neon) để giữ dữ liệu bền vững.
