@@ -132,6 +132,10 @@ def seed_default_user():
 
 # Auto-create tables & seed default CITARES user
 def init_db():
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"[DB Create Tables Error]: {e}")
     seed_default_user()
 
 init_db()

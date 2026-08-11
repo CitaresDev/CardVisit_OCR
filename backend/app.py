@@ -190,6 +190,22 @@ async def extract_card_info(
     else:
         response_payload["result"] = response_payload.get("v1", {})
 
+    # Auto-save extracted card record to Neon Postgres / Database
+    try:
+        from backend.database.db_manager import save_card_to_database, extract_token_from_request, decode_jwt_token
+        token = extract_token_from_request(request)
+        scanned_by = "Guest"
+        if token:
+            user_info = decode_jwt_token(token)
+            if user_info:
+                scanned_by = user_info.get("full_name") or user_info.get("username") or "Admin"
+        
+        final_res = response_payload.get("result", {})
+        if "error" not in final_res and (final_res.get("full_name") or final_res.get("company_name") or final_res.get("phone")):
+            save_card_to_database(final_res, owner_token=token or "anon", scanned_by=scanned_by)
+    except Exception as err_dbsave:
+        print(f"[DB Auto Save Error]: {err_dbsave}")
+
     return response_payload
 
 @app.post("/api/export/vcard")
