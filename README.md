@@ -28,25 +28,6 @@ Hệ thống trích xuất thông tin Danh thiếp (Business Card) Đa ngôn ng�
 
 ---
 
-## 🔑 Cấu Hình Biến Môi Trường (`.env`)
-
-Tạo hoặc cập nhật file **[.env](file:///d:/CARD_VISIT/.env)** tại thư mục gốc của dự án:
-
-```env
-# NVIDIA API Key (Chạy chính - Lấy miễn phí tại build.nvidia.com)
-NVIDIA_API_KEY=nvapi-your_nvidia_api_key_here
-
-# Google Gemini API Key (Dự phòng - Lấy tại aistudio.google.com)
-GEMINI_API_KEY=your_gemini_api_key_here
-
-# Google Sheet Webhook URL (Xử lý lưu trữ dữ liệu tự động)
-GOOGLE_SHEET_WEBHOOK_URL=https://script.google.com/macros/s/your_google_script_deployment_id/exec
-
-# Mật khẩu bảo mật JWT Token
-JWT_SECRET_KEY=citares_secure_jwt_secret_key_2026_pro
-```
-
----
 
 ## 🚀 Hướng Dẫn Khởi Chạy Dự Án
 
