@@ -253,12 +253,17 @@ async def save_google_sheet_endpoint(request: Request, payload: dict):
         if user_info:
             scanned_by = user_info.get("full_name") or user_info.get("username") or "Admin"
     
-    if isinstance(payload, dict):
-        payload["scanned_by"] = payload.get("scanned_by") or scanned_by
-    elif isinstance(payload, list):
-        for item in payload:
-            if isinstance(item, dict):
-                item["scanned_by"] = item.get("scanned_by") or scanned_by
+    # Also save/ensure card record is saved to Neon Database
+    try:
+        from backend.database.db_manager import save_card_to_database
+        if isinstance(payload, dict):
+            save_card_to_database(payload, owner_token=token or "anon", scanned_by=scanned_by)
+        elif isinstance(payload, list):
+            for item in payload:
+                if isinstance(item, dict):
+                    save_card_to_database(item, owner_token=token or "anon", scanned_by=scanned_by)
+    except Exception as err_dbsave2:
+        print(f"[DB Save Sheet Endpoint Error]: {err_dbsave2}")
 
     return send_to_google_sheet(payload, webhook_url)
 
