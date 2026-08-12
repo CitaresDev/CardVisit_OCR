@@ -130,10 +130,26 @@ def seed_default_user():
     finally:
         db.close()
 
+def auto_migrate_columns():
+    """Adds missing columns like 'note' to existing SQLite/Postgres tables if not present."""
+    try:
+        from sqlalchemy import inspect, text
+        inspector = inspect(engine)
+        if "card_records" in inspector.get_table_names():
+            columns = [c["name"] for c in inspector.get_columns("card_records")]
+            if "note" not in columns:
+                with engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE card_records ADD COLUMN note TEXT DEFAULT ''"))
+                    conn.commit()
+                print("[DB Migration]: Successfully added 'note' column to card_records table!")
+    except Exception as err:
+        print(f"[DB Migration Error]: {err}")
+
 # Auto-create tables & seed default CITARES user
 def init_db():
     try:
         Base.metadata.create_all(bind=engine)
+        auto_migrate_columns()
     except Exception as e:
         print(f"[DB Create Tables Error]: {e}")
     seed_default_user()
@@ -164,6 +180,7 @@ def save_card_to_database(card_data: dict, owner_token: str = "anon_user", scann
             website=card_data.get("website", ""),
             address=card_data.get("address", ""),
             tax_code=card_data.get("tax_code", ""),
+            note=card_data.get("note", ""),
             scanned_by=scanned_by or card_data.get("scanned_by", "")
         )
         db.add(record)

@@ -43,5 +43,6 @@ class CardRecord(Base):
     website = Column(String(255), default="")
     address = Column(Text, default="")
     tax_code = Column(String(64), default="")
+    note = Column(Text, default="")
     scanned_by = Column(String(128), default="")
     created_at = Column(DateTime, default=datetime.utcnow)

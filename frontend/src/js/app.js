@@ -28,6 +28,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const inputEmail = document.getElementById("field-email");
   const inputWebsite = document.getElementById("field-website");
   const inputAddress = document.getElementById("field-address");
+  const inputNote = document.getElementById("field-note");
 
   const singleResultPanel = document.getElementById("single-result-panel");
   const compareResultPanel = document.getElementById("compare-result-panel");
@@ -259,6 +260,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     inputEmail.value = "";
     inputWebsite.value = "";
     inputAddress.value = "";
+    if (inputNote) inputNote.value = "";
     currentCardData = {};
   };
 
@@ -317,6 +319,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     inputEmail.value = data.email || "";
     inputWebsite.value = data.website || "";
     inputAddress.value = data.address || "";
+    if (inputNote && data.note !== undefined) {
+      inputNote.value = data.note;
+    }
 
     currentCardData = {
       company_name: inputCompany.value,
@@ -326,7 +331,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       phone_2: inputPhone2 ? inputPhone2.value : "",
       email: inputEmail.value,
       website: inputWebsite.value,
-      address: inputAddress.value
+      address: inputAddress.value,
+      note: inputNote ? inputNote.value : ""
     };
 
     if (currentCardData.full_name || currentCardData.company_name) {
@@ -629,6 +635,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   const switchActiveCard = (cardId) => {
+    if (activeCardId) {
+      const prevCard = cardQueueList.find(c => c.id === activeCardId);
+      if (prevCard && (inputCompany.value || inputName.value || (inputNote && inputNote.value))) {
+        prevCard.extractedData = {
+          company_name: inputCompany.value,
+          full_name: inputName.value,
+          job_title: inputTitle.value,
+          phone: inputPhone.value,
+          phone_2: inputPhone2 ? inputPhone2.value : "",
+          email: inputEmail.value,
+          website: inputWebsite.value,
+          address: inputAddress.value,
+          note: inputNote ? inputNote.value : ""
+        };
+        prevCard.status = "extracted";
+      }
+    }
+
     const card = cardQueueList.find(c => c.id === cardId);
     if (!card) return;
 
@@ -755,6 +779,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
 
       const extractedResult = res.result || res.v1 || res;
+      if (inputNote && inputNote.value) {
+        extractedResult.note = inputNote.value;
+      }
 
       // Lưu kết quả trích xuất vào thẻ đang chọn và đánh dấu đã đọc
       if (activeCard) {
@@ -787,7 +814,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         phone_2: inputPhone2 ? inputPhone2.value : "",
         email: inputEmail.value,
         website: inputWebsite.value,
-        address: inputAddress.value
+        address: inputAddress.value,
+        note: inputNote ? inputNote.value : ""
       };
       if (!cardToExport.full_name && !cardToExport.company_name) {
         alert("Vui lòng thực hiện trích xuất thông tin card trước khi tải vCard.");
@@ -807,6 +835,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       email: inputEmail.value,
       website: inputWebsite.value,
       address: inputAddress.value,
+      note: inputNote ? inputNote.value : "",
       scanned_by: currentUser ? (currentUser.full_name || currentUser.email || "CITARES Admin") : "CITARES Admin"
     };
 
@@ -835,6 +864,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       email: inputEmail.value,
       website: inputWebsite.value,
       address: inputAddress.value,
+      note: inputNote ? inputNote.value : "",
       scanned_by: currentUser ? (currentUser.full_name || currentUser.email || "CITARES Admin") : "CITARES Admin"
     };
 

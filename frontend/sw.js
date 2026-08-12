@@ -1,10 +1,10 @@
-const CACHE_NAME = 'card-reader-v51';
+const CACHE_NAME = 'card-reader-v52';
 const ASSETS_TO_CACHE = [
   '/',
   '/static/css/style.css',
-  '/static/js/api_client.js',
-  '/static/js/canvas_cropper.js',
-  '/static/js/app.js'
+  '/static/js/api_client.js?v=2.2',
+  '/static/js/canvas_cropper.js?v=2.2',
+  '/static/js/app.js?v=2.2'
 ];
 
 self.addEventListener('install', (event) => {

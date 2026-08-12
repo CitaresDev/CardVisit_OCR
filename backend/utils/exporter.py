@@ -66,6 +66,11 @@ def generate_vcard(card_data: dict) -> str:
         adr = j.add('adr')
         adr.value = vobject.vcard.Address(street=address)
 
+    # Note
+    note = card_data.get("note", "").strip()
+    if note:
+        j.add('note').value = note
+
     return j.serialize()
 
 def clean_phone_for_sheets(val):
@@ -105,6 +110,7 @@ COLUMN_MAPPING = {
     "email": "Email",
     "website": "Website",
     "address": "Địa chỉ văn phòng",
+    "note": "Ghi chú / Nhu cầu khách hàng",
     "scanned_by": "Người quét",
     "created_at": "Thời gian quét"
 }
@@ -150,6 +156,7 @@ def send_to_google_sheet(card_data: dict | list, webhook_url: str) -> dict:
     
     headers = {"Content-Type": "application/json"}
     payload = sanitize_card_data(card_data)
+    print(f"[Google Sheet Payload Sent]: {payload}")
     
     try:
         resp = requests.post(webhook_url, json=payload, headers=headers, timeout=15)

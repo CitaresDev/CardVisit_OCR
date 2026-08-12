@@ -13,7 +13,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Response, BackgroundTasks, Cookie
+from fastapi import FastAPI, Request, File, UploadFile, Form, HTTPException, Response, BackgroundTasks, Cookie
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -126,6 +126,7 @@ async def get_sample_card_file(filename: str):
 
 @app.post("/api/extract")
 async def extract_card_info(
+    request: Request,
     file: UploadFile = File(None),
     sample_filename: str = Form(None),
     engine: str = Form("v1"),
@@ -192,7 +193,7 @@ async def extract_card_info(
 
     # Auto-save extracted card record to Neon Postgres / Database
     try:
-        from backend.database.db_manager import save_card_to_database, extract_token_from_request, decode_jwt_token
+        from backend.database.db_manager import save_card_to_database, decode_jwt_token
         token = extract_token_from_request(request)
         scanned_by = "Guest"
         if token:
@@ -466,37 +467,6 @@ async def save_database_endpoint(payload: dict, access_token: str = Cookie(None)
         return {"success": True, "message": "Đã lưu thành công vĩnh viễn vào CSDL (Database)!"}
     raise HTTPException(status_code=500, detail="Không thể lưu vào Cơ sở dữ liệu.")
 
-@app.post("/api/save-google-sheet")
-async def save_google_sheet_endpoint(payload: dict, access_token: str = Cookie(None)):
-    webhook_url = os.getenv("GOOGLE_SHEET_WEBHOOK_URL", "").strip()
-    card_data = payload.get("card_data") or payload
-
-    from backend.database.db_manager import decode_jwt_token, save_card_to_database, SessionLocal
-    from backend.database.models import UserProfile
-
-    owner_token = "anon_user"
-    scanned_by = card_data.get("scanned_by", "")
-
-    if access_token:
-        acc_tok = decode_jwt_token(access_token)
-        if acc_tok:
-            owner_token = acc_tok
-            db = SessionLocal()
-            try:
-                prof = db.query(UserProfile).filter(UserProfile.account_token == acc_tok).first()
-                if prof:
-                    scanned_by = prof.full_name or prof.email
-            finally:
-                db.close()
-
-    card_data["scanned_by"] = scanned_by
-
-    # 1. Parallel Auto Backup to Database (Table 3: card_records)
-    save_card_to_database(card_data, owner_token=owner_token, scanned_by=scanned_by)
-
-    if not webhook_url:
-        return {"success": True, "message": "Đã lưu bản sao vĩnh viễn vào CSDL! (Cần cấu hình thêm GOOGLE_SHEET_WEBHOOK_URL để đồng bộ sang Google Sheet)"}
-
 @app.get("/api/cards/history")
 async def get_card_history_endpoint(access_token: str = Cookie(None)):
     from backend.database.db_manager import decode_jwt_token, SessionLocal
@@ -531,6 +501,7 @@ async def get_card_history_endpoint(access_token: str = Cookie(None)):
                 "email": r.email,
                 "website": r.website,
                 "address": r.address,
+                "note": r.note or "",
                 "scanned_by": r.scanned_by,
                 "created_at": r.created_at.strftime("%Y-%m-%d %H:%M:%S") if r.created_at else ""
             })
