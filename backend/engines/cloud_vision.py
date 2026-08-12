@@ -209,60 +209,46 @@ YÊU CẦU:
         "max_tokens": 512
     }
 
-    last_err = ""
-    import time
-    for attempt in range(2):
-        try:
-            response = requests.post(invoke_url, headers=headers, json=payload, timeout=25)
-            if response.status_code != 200:
-                err_detail = response.json().get("error", {}).get("message", response.text)
-                last_err = f"NVIDIA API ({response.status_code}): {err_detail}"
-                time.sleep(0.5)
-                continue
+    try:
+        response = requests.post(invoke_url, headers=headers, json=payload, timeout=25)
+        if response.status_code != 200:
+            err_detail = response.json().get("error", {}).get("message", response.text)
+            return {"error": f"NVIDIA API ({response.status_code}): {err_detail}"}
 
-            res_data = response.json()
-            choices = res_data.get("choices", [])
-            if not choices:
-                last_err = "No response from NVIDIA Llama 3.2 Vision"
-                time.sleep(0.5)
-                continue
+        res_data = response.json()
+        choices = res_data.get("choices", [])
+        if not choices:
+            return {"error": "No response from NVIDIA Llama 3.2 Vision"}
 
-            text_content = choices[0].get("message", {}).get("content", "")
-            parsed = parse_robust_json(text_content) or {}
+        text_content = choices[0].get("message", {}).get("content", "")
+        parsed = parse_robust_json(text_content) or {}
 
-            res_dict = {
-                "engine": "NVIDIA NIM - Llama 3.2 11B Vision",
-                "company_name": parsed.get("company_name", "") if isinstance(parsed, dict) else "",
-                "full_name": parsed.get("full_name", "") if isinstance(parsed, dict) else "",
-                "job_title": parsed.get("job_title", "") if isinstance(parsed, dict) else "",
-                "phone": parsed.get("phone", "") if isinstance(parsed, dict) else "",
-                "phone_2": parsed.get("phone_2", "") if isinstance(parsed, dict) else "",
-                "email": parsed.get("email", "") if isinstance(parsed, dict) else "",
-                "website": parsed.get("website", "") if isinstance(parsed, dict) else "",
-                "address": parsed.get("address", "") if isinstance(parsed, dict) else "",
-                "tax_code": parsed.get("tax_code", "") if isinstance(parsed, dict) else ""
-            }
+        res_dict = {
+            "engine": "NVIDIA NIM - Llama 3.2 11B Vision",
+            "company_name": parsed.get("company_name", "") if isinstance(parsed, dict) else "",
+            "full_name": parsed.get("full_name", "") if isinstance(parsed, dict) else "",
+            "job_title": parsed.get("job_title", "") if isinstance(parsed, dict) else "",
+            "phone": parsed.get("phone", "") if isinstance(parsed, dict) else "",
+            "phone_2": parsed.get("phone_2", "") if isinstance(parsed, dict) else "",
+            "email": parsed.get("email", "") if isinstance(parsed, dict) else "",
+            "website": parsed.get("website", "") if isinstance(parsed, dict) else "",
+            "address": parsed.get("address", "") if isinstance(parsed, dict) else "",
+            "tax_code": parsed.get("tax_code", "") if isinstance(parsed, dict) else ""
+        }
 
-            # If extraction is empty, retry or return error to allow fallback
-            if not res_dict.get("company_name") and not res_dict.get("full_name") and not res_dict.get("phone"):
-                last_err = "NVIDIA Llama Vision returned empty extraction result"
-                time.sleep(0.5)
-                continue
+        if not res_dict.get("company_name") and not res_dict.get("full_name") and not res_dict.get("phone"):
+            return {"error": "NVIDIA Llama Vision returned empty extraction result"}
 
-            res_dict = clean_extracted_dict(res_dict)
-            res_dict = split_multiple_phones(res_dict)
-            return auto_fill_phone_2_hybrid(res_dict, image_bytes)
-        except Exception as e:
-            last_err = f"Ngoại lệ NVIDIA Llama Vision: {str(e)}"
-            time.sleep(0.5)
-
-    return {"error": last_err}
+        res_dict = clean_extracted_dict(res_dict)
+        res_dict = split_multiple_phones(res_dict)
+        return auto_fill_phone_2_hybrid(res_dict, image_bytes)
+    except Exception as e:
+        return {"error": f"Ngoại lệ NVIDIA Llama Vision: {str(e)}"}
 
 def extract_with_gemini_vision_direct(image_bytes: bytes, api_key: str) -> dict:
     """
-    Uses Gemini Vision REST API with automatic 503/429 retry and fallback models.
+    Uses Gemini Vision REST API with high performance models.
     """
-    import time
     b64_image = base64.b64encode(image_bytes).decode("utf-8")
     prompt = """
 Hãy đọc kỹ hình ảnh danh thiếp (Business Card) này và bóc tách thông tin chính xác theo định dạng JSON duy nhất:
@@ -304,49 +290,41 @@ YÊU CẦU:
         }
     }
 
-    # List of stable Gemini models to try in case of 503 high demand
-    models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash"]
     last_error_text = ""
 
     for model_name in models_to_try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-        for attempt in range(2):  # Retry up to 2 times for 503 temporary spikes
-            try:
-                resp = requests.post(url, headers=headers, json=payload, timeout=25)
-                if resp.status_code == 200:
-                    res_data = resp.json()
-                    candidates = res_data.get("candidates", [])
-                    if not candidates:
-                        return {"error": "Không nhận được phản hồi từ Gemini AI Vision"}
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=25)
+            if resp.status_code == 200:
+                res_data = resp.json()
+                candidates = res_data.get("candidates", [])
+                if not candidates:
+                    return {"error": "Không nhận được phản hồi từ Gemini AI Vision"}
 
-                    text_content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                    parsed = parse_robust_json(text_content) or {}
+                text_content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                parsed = parse_robust_json(text_content) or {}
 
-                    res_dict = {
-                        "engine": f"Cloud AI Vision - Gemini ({model_name})",
-                        "company_name": parsed.get("company_name", "") if isinstance(parsed, dict) else "",
-                        "full_name": parsed.get("full_name", "") if isinstance(parsed, dict) else "",
-                        "job_title": parsed.get("job_title", "") if isinstance(parsed, dict) else "",
-                        "phone": parsed.get("phone", "") if isinstance(parsed, dict) else "",
-                        "phone_2": parsed.get("phone_2", "") if isinstance(parsed, dict) else "",
-                        "email": parsed.get("email", "") if isinstance(parsed, dict) else "",
-                        "website": parsed.get("website", "") if isinstance(parsed, dict) else "",
-                        "address": parsed.get("address", "") if isinstance(parsed, dict) else "",
-                        "tax_code": parsed.get("tax_code", "") if isinstance(parsed, dict) else ""
-                    }
-                    res_dict = clean_extracted_dict(res_dict)
-                    res_dict = split_multiple_phones(res_dict)
-                    return auto_fill_phone_2_hybrid(res_dict, image_bytes)
+                res_dict = {
+                    "engine": f"Cloud AI Vision - Gemini ({model_name})",
+                    "company_name": parsed.get("company_name", "") if isinstance(parsed, dict) else "",
+                    "full_name": parsed.get("full_name", "") if isinstance(parsed, dict) else "",
+                    "job_title": parsed.get("job_title", "") if isinstance(parsed, dict) else "",
+                    "phone": parsed.get("phone", "") if isinstance(parsed, dict) else "",
+                    "phone_2": parsed.get("phone_2", "") if isinstance(parsed, dict) else "",
+                    "email": parsed.get("email", "") if isinstance(parsed, dict) else "",
+                    "website": parsed.get("website", "") if isinstance(parsed, dict) else "",
+                    "address": parsed.get("address", "") if isinstance(parsed, dict) else "",
+                    "tax_code": parsed.get("tax_code", "") if isinstance(parsed, dict) else ""
+                }
+                res_dict = clean_extracted_dict(res_dict)
+                res_dict = split_multiple_phones(res_dict)
+                return auto_fill_phone_2_hybrid(res_dict, image_bytes)
 
-                last_error_text = f"Gemini API ({resp.status_code}): {resp.text}"
-                if resp.status_code in [503, 429, 500]:
-                    time.sleep(0.8)
-                    continue
-                else:
-                    break
-            except Exception as err_rest:
-                last_error_text = f"Ngoại lệ Gemini Vision: {str(err_rest)}"
-                time.sleep(0.5)
+            last_error_text = f"Gemini API ({resp.status_code}): {resp.text}"
+        except Exception as err_rest:
+            last_error_text = f"Ngoại lệ Gemini Vision: {str(err_rest)}"
 
     return {"error": last_error_text}
 
